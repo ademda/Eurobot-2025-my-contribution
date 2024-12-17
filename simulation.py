@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 import pygame
 import math
-from ros_custom_messages.msg import MasterNavigationMessage  # Your custom message type
+from ros_custom_messages.msg import MasterNavigationMessage, MasterStopSignal  # Your custom message types
 
 # Map and robot dimensions in millimeters
 MAP_LENGTH_MM = 3000  # Map length in millimeters (longer side)
@@ -23,6 +23,9 @@ ROBOT_WIDTH_PX = int(ROBOT_WIDTH_MM * SCALE_Y)
 # Robot movement speed (in pixels per frame)
 SPEED = 2  # Change this value to control robot speed
 
+# Rotation speed (degrees per frame)
+ROTATION_SPEED = 1  # Speed at which robot rotates towards the target angle
+
 class RobotSimulation(Node):
     def __init__(self):
         super().__init__('robot_simulation_node')
@@ -30,6 +33,11 @@ class RobotSimulation(Node):
         # Subscribe to the navigation topic
         self.subscription = self.create_subscription(
             MasterNavigationMessage, 'ros_can_interface/master_nav', self.nav_callback, 10
+        )
+        
+        # Subscribe to the stop signal topic
+        self.stop_subscription = self.create_subscription(
+            MasterStopSignal, 'ros_can_interface/stop_signal', self.stop_callback, 10
         )
 
         # Robot's position and orientation (initialized to 0)
@@ -40,17 +48,33 @@ class RobotSimulation(Node):
         # Target position (in mm)
         self.target_x = 0.0
         self.target_y = 0.0
+        self.target_angle = 0.0
+
+        # Flag to check if stop signal is received
+        self.stop_signal_received = False
 
         self.get_logger().info("Robot simulation node initialized.")
 
     def nav_callback(self, msg):
         """Callback function to update the robot's target position and orientation."""
-        # Update robot's target position and orientation from the message
-        self.target_x = msg.nav_target_x
-        self.target_y = msg.nav_target_y
-        self.robot_angle = msg.nav_target_angle  # Update orientation if needed
-        self.get_logger().info(f"Received nav_target: X={self.target_x}, Y={self.target_y}, Angle={self.robot_angle}")
+        if not self.stop_signal_received:  # Only update target if stop signal not received
+            # Update robot's target position and orientation from the message
+            self.target_x = msg.nav_target_x
+            self.target_y = msg.nav_target_y
+            self.target_angle = msg.nav_target_angle  # Target orientation
+            self.get_logger().info(f"Received nav_target: X={self.target_x}, Y={self.target_y}, Angle={self.target_angle}")
+            
 
+    def stop_callback(self, msg):
+        """Callback function to stop the robot."""
+        self.stop_signal_received = True
+        self.get_logger().info("Stop signal received. Robot will stop immediately.")
+
+        # You can reset the robot's target position to its current position or any other logic
+        self.target_x = self.robot_x
+        self.target_y = self.robot_y
+        self.target_angle = self.robot_angle
+        self.stop_signal_received = False
 
 def move_towards_target(robot_x, robot_y, target_x, target_y, speed):
     """Move the robot slowly towards the target position."""
@@ -70,6 +94,21 @@ def move_towards_target(robot_x, robot_y, target_x, target_y, speed):
     robot_y += move_y
 
     return robot_x, robot_y
+
+
+def rotate_towards_target(robot_angle, target_angle, rotation_speed):
+    """Rotate the robot slowly towards the target orientation."""
+    angle_diff = (target_angle - robot_angle + 180) % 360 - 180  # Normalize the angle difference to [-180, 180]
+
+    # Rotate the robot gradually
+    if abs(angle_diff) < rotation_speed:
+        return target_angle  # If the difference is small enough, we can directly set the angle
+
+    # Otherwise, rotate by a smaller amount
+    if angle_diff > 0:
+        return robot_angle + rotation_speed
+    else:
+        return robot_angle - rotation_speed
 
 
 def main(args=None):
@@ -107,11 +146,18 @@ def main(args=None):
         # Spin ROS 2 node to process callbacks
         rclpy.spin_once(robot_simulation_node, timeout_sec=0.01)
 
-        # Move the robot slowly towards the target position
-        robot_simulation_node.robot_x, robot_simulation_node.robot_y = move_towards_target(
-            robot_simulation_node.robot_x, robot_simulation_node.robot_y,
-            robot_simulation_node.target_x, robot_simulation_node.target_y, SPEED
-        )
+        # Move the robot slowly towards the target position, if no stop signal is received
+        if not robot_simulation_node.stop_signal_received:
+            robot_simulation_node.robot_x, robot_simulation_node.robot_y = move_towards_target(
+                robot_simulation_node.robot_x, robot_simulation_node.robot_y,
+                robot_simulation_node.target_x, robot_simulation_node.target_y, SPEED
+            )
+
+            # If the robot has reached the target position, start rotating
+            if robot_simulation_node.robot_x == robot_simulation_node.target_x and robot_simulation_node.robot_y == robot_simulation_node.target_y:
+                robot_simulation_node.robot_angle = rotate_towards_target(
+                    robot_simulation_node.robot_angle, robot_simulation_node.target_angle, ROTATION_SPEED
+                )
 
         # Draw the map background
         screen.blit(map_image, (0, 0))  # Draw the map at the top-left corner

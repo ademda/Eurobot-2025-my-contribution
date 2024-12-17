@@ -7,3 +7,7 @@ nav_linear_velocity_choice: 1
 nav_angular_velocity_choice: 1
 nav_linear_acceleration_choice: 1
 nav_angular_acceleration_choice: 1"
+
+
+ros2 topic pub /ros_can_interface/stop_signal ros_custom_messages/msg/MasterStopSignal \
+"stop_signal_state: true"
