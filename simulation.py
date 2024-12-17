@@ -6,12 +6,12 @@ from ros_custom_messages.msg import MasterNavigationMessage  # Your custom messa
 # Map and robot dimensions in millimeters
 MAP_LENGTH_MM = 3000  # Map length in millimeters (longer side)
 MAP_WIDTH_MM = 2000   # Map width in millimeters (shorter side)
-ROBOT_LENGTH_MM = 370  # Robot length in millimeters (longer side)
-ROBOT_WIDTH_MM = 230   # Robot width in millimeters (shorter side)
+ROBOT_LENGTH_MM = 230  # Robot length in millimeters (longer side)
+ROBOT_WIDTH_MM = 370   # Robot width in millimeters (shorter side)
 
 # Scaling factors to fit the map into a window
-WINDOW_LENGTH_PX = 900  # Window length (longer side) in pixels
-WINDOW_WIDTH_PX = 600   # Window width (shorter side) in pixels
+WINDOW_LENGTH_PX = 1080  # Window length (longer side) in pixels
+WINDOW_WIDTH_PX = 720   # Window width (shorter side) in pixels
 SCALE_X = WINDOW_LENGTH_PX / MAP_LENGTH_MM  # Scale factor for X
 SCALE_Y = WINDOW_WIDTH_PX / MAP_WIDTH_MM  # Scale factor for Y
 
@@ -59,7 +59,6 @@ def main(args=None):
 
     # Set up Pygame display window
     screen = pygame.display.set_mode((WINDOW_LENGTH_PX, WINDOW_WIDTH_PX))
-    pygame.display.set_caption("2D Robot Simulation")
 
     # Load and scale the map image
     map_image = pygame.image.load("map.png")  # Load your map image
