@@ -21,10 +21,10 @@ ROBOT_LENGTH_PX = int(ROBOT_LENGTH_MM * SCALE_X)
 ROBOT_WIDTH_PX = int(ROBOT_WIDTH_MM * SCALE_Y)
 
 # Robot movement speed (in pixels per frame)
-SPEED = 2  # Change this value to control robot speed
+SPEED = 6  # Change this value to control robot speed
 
 # Rotation speed (degrees per frame)
-ROTATION_SPEED = 1  # Speed at which robot rotates towards the target angle
+ROTATION_SPEED = 2  # Speed at which robot rotates towards the target angle
 
 class RobotSimulation(Node):
     def __init__(self):
@@ -63,7 +63,6 @@ class RobotSimulation(Node):
             self.target_y = msg.nav_target_y
             self.target_angle = msg.nav_target_angle  # Target orientation
             self.get_logger().info(f"Received nav_target: X={self.target_x}, Y={self.target_y}, Angle={self.target_angle}")
-            
 
     def stop_callback(self, msg):
         """Callback function to stop the robot."""
@@ -94,6 +93,14 @@ def move_towards_target(robot_x, robot_y, target_x, target_y, speed):
     robot_y += move_y
 
     return robot_x, robot_y
+
+
+def calculate_angle_to_target(robot_x, robot_y, target_x, target_y):
+    """Calculate the angle between the robot's position and the target position."""
+    dx = target_x - robot_x
+    dy = target_y - robot_y
+    angle = math.degrees(math.atan2(dy, dx))
+    return angle
 
 
 def rotate_towards_target(robot_angle, target_angle, rotation_speed):
@@ -146,18 +153,30 @@ def main(args=None):
         # Spin ROS 2 node to process callbacks
         rclpy.spin_once(robot_simulation_node, timeout_sec=0.01)
 
-        # Move the robot slowly towards the target position, if no stop signal is received
+        # Step 1: Orient the robot towards the target position (x, y)
         if not robot_simulation_node.stop_signal_received:
-            robot_simulation_node.robot_x, robot_simulation_node.robot_y = move_towards_target(
-                robot_simulation_node.robot_x, robot_simulation_node.robot_y,
-                robot_simulation_node.target_x, robot_simulation_node.target_y, SPEED
+            target_angle = calculate_angle_to_target(
+                robot_simulation_node.robot_x, robot_simulation_node.robot_y, 
+                robot_simulation_node.target_x, robot_simulation_node.target_y
+            )
+            
+            # Rotate the robot to face the target position
+            robot_simulation_node.robot_angle = rotate_towards_target(
+                robot_simulation_node.robot_angle, target_angle, ROTATION_SPEED
             )
 
-            # If the robot has reached the target position, start rotating
-            if robot_simulation_node.robot_x == robot_simulation_node.target_x and robot_simulation_node.robot_y == robot_simulation_node.target_y:
-                robot_simulation_node.robot_angle = rotate_towards_target(
-                    robot_simulation_node.robot_angle, robot_simulation_node.target_angle, ROTATION_SPEED
+            # Once the robot is facing the target, move towards it
+            if abs(robot_simulation_node.robot_angle - target_angle) < 1:  # A small threshold for orientation
+                robot_simulation_node.robot_x, robot_simulation_node.robot_y = move_towards_target(
+                    robot_simulation_node.robot_x, robot_simulation_node.robot_y,
+                    robot_simulation_node.target_x, robot_simulation_node.target_y, SPEED
                 )
+
+                # After reaching the target, orient to the final target angle (target_theta)
+                if robot_simulation_node.robot_x == robot_simulation_node.target_x and robot_simulation_node.robot_y == robot_simulation_node.target_y:
+                    robot_simulation_node.robot_angle = rotate_towards_target(
+                        robot_simulation_node.robot_angle, robot_simulation_node.target_angle, ROTATION_SPEED
+                    )
 
         # Draw the map background
         screen.blit(map_image, (0, 0))  # Draw the map at the top-left corner
