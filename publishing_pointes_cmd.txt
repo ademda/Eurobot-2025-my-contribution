@@ -1,0 +1,9 @@
+ros2 topic pub /ros_can_interface/master_nav ros_custom_messages/msg/MasterNavigationMessage \
+"nav_target_x: 1500.0
+nav_target_y: 1200.0
+nav_target_angle: 90.0
+nav_is_forward: true
+nav_linear_velocity_choice: 1
+nav_angular_velocity_choice: 1
+nav_linear_acceleration_choice: 1
+nav_angular_acceleration_choice: 1"
