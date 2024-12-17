@@ -21,10 +21,10 @@ ROBOT_LENGTH_PX = int(ROBOT_LENGTH_MM * SCALE_X)
 ROBOT_WIDTH_PX = int(ROBOT_WIDTH_MM * SCALE_Y)
 
 # Robot movement speed (in pixels per frame)
-SPEED = 6  # Change this value to control robot speed
+SPEED = 2  # Change this value to control robot speed
 
 # Rotation speed (degrees per frame)
-ROTATION_SPEED = 2  # Speed at which robot rotates towards the target angle
+ROTATION_SPEED = 1  # Speed at which robot rotates towards the target angle
 
 class RobotSimulation(Node):
     def __init__(self):
@@ -73,7 +73,7 @@ class RobotSimulation(Node):
         self.target_x = self.robot_x
         self.target_y = self.robot_y
         self.target_angle = self.robot_angle
-        self.stop_signal_received = False
+        
 
 def move_towards_target(robot_x, robot_y, target_x, target_y, speed):
     """Move the robot slowly towards the target position."""
