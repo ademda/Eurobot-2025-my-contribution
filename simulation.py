@@ -73,11 +73,9 @@ class RobotSimulation(Node):
         self.target_x = self.robot_x
         self.target_y = self.robot_y
         self.target_angle = self.robot_angle
-        
 
 def move_towards_target(robot_x, robot_y, target_x, target_y, speed):
     """Move the robot slowly towards the target position."""
-    # Calculate the distance between the current position and the target
     dx = target_x - robot_x
     dy = target_y - robot_y
     distance = math.hypot(dx, dy)
@@ -94,14 +92,12 @@ def move_towards_target(robot_x, robot_y, target_x, target_y, speed):
 
     return robot_x, robot_y
 
-
 def calculate_angle_to_target(robot_x, robot_y, target_x, target_y):
     """Calculate the angle between the robot's position and the target position."""
     dx = target_x - robot_x
     dy = target_y - robot_y
     angle = math.degrees(math.atan2(dy, dx))
     return angle
-
 
 def rotate_towards_target(robot_angle, target_angle, rotation_speed):
     """Rotate the robot slowly towards the target orientation."""
@@ -111,12 +107,10 @@ def rotate_towards_target(robot_angle, target_angle, rotation_speed):
     if abs(angle_diff) < rotation_speed:
         return target_angle  # If the difference is small enough, we can directly set the angle
 
-    # Otherwise, rotate by a smaller amount
     if angle_diff > 0:
         return robot_angle + rotation_speed
     else:
         return robot_angle - rotation_speed
-
 
 def main(args=None):
     # Initialize ROS 2
@@ -172,8 +166,14 @@ def main(args=None):
                     robot_simulation_node.target_x, robot_simulation_node.target_y, SPEED
                 )
 
-                # After reaching the target, orient to the final target angle (target_theta)
-                if robot_simulation_node.robot_x == robot_simulation_node.target_x and robot_simulation_node.robot_y == robot_simulation_node.target_y:
+                # Use a small threshold to determine when to stop moving
+                distance_to_target = math.hypot(
+                    robot_simulation_node.robot_x - robot_simulation_node.target_x, 
+                    robot_simulation_node.robot_y - robot_simulation_node.target_y
+                )
+
+                # Stop the robot when it's close enough to the target position
+                if distance_to_target < SPEED:
                     robot_simulation_node.robot_angle = rotate_towards_target(
                         robot_simulation_node.robot_angle, robot_simulation_node.target_angle, ROTATION_SPEED
                     )
@@ -207,7 +207,6 @@ def main(args=None):
     pygame.quit()
     robot_simulation_node.destroy_node()
     rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()
