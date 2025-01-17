@@ -1,3 +1,49 @@
+"""
+Author: <Adem Daly>
+
+Description:
+    This module is responsible for : 
+        -Generating available tasks for the robot to perform
+        -Generating Obstacle positions
+
+Note:
+    -I need to add getting the available tasks based on the enemy position and what are the tasks i did
+    -I need to add getting the obstacles positions based on the enemy position and the and what tasks has been erased
+    -Need to add GetObstaclesPositionsService
+    -Need to include the handling of the enemy robot position in the update_availalable_tasks function
+    -Need to include the handling of the enemy robot position in the update_obstacles_positions function
+    /those two functions will change in the tasks[] list (i should change it's name to available_tasks[])
+    and in obstacles_position[] list 
+
+Enums:
+    - TaskType(Enum): Enum class for the type of the task
+    - SpeedChoice(Enum): Enum class for the speed choice of the task
+    - TaskTypeScore(Enum): Enum class for the score of the task
+    - SubTaskType(Enum): Enum class for the type of the subtask
+    - MachanismSubTaskType(Enum): Enum class for the type of the mechanism subtask
+    - ObstacleType(Enum): Enum class for the type of the obstacle
+    - Direction(Enum): Enum class for the direction of the robot when performing the task or in normal navigation
+
+Classes:
+    - Task: Class for the task
+    - SubTask(ABC): Abstract class for the subtask
+    - NavSubTask(SubTask): Class for the navigation subtask
+    - MechanismSubTask(SubTask): Class for the mechanism subtask
+    - DoubleBuildingDropDownArea: Class for the drop down area that can support two buildings /still didn't use it
+    - SingleBuildingDropDownArea: Class for the drop down area that can support one building /still didn't use it
+    - BuildingPickUpArea: Class for the pick up area of the building /still didn't use it
+    - Obstacle: Class for the obstacle /still didn't use it
+    - Services: Class for the services:
+        - GetAvailableTasksService: Class for the get available tasks service 
+        it has connections with the nodes:subtask_generator,strategy_server
+
+Functions:
+    - convert_to_subtask_list_msg(subtask_list: List['SubTask']) -> List[SubTaskMsg]: Function to convert the subtask list 
+    to a list of subtask messages
+    - communication_instances_init(): Function to initialize the communication instances
+
+"""
+
 import rclpy
 import threading
 from rclpy.executors import MultiThreadedExecutor
@@ -18,7 +64,6 @@ servers_instance = None
 
 ########################################### CLASSES ###############################
 
-
 class TaskType(Enum):
     NORMAL_NAV = 0
     BONDEROLE_POSE = 1
@@ -26,11 +71,13 @@ class TaskType(Enum):
     BUILDING_DROPDOWN = 3
     RETURN_TO_FINISH_SPOT = 4
 
+
 class SpeedChoice (Enum):
     SLOW = 0
     NORMAL = 1
     FAST = 2
     VERY_FAST = 3
+
 
 class TaskTypeScore(Enum):
     BONDEROLE_POSE = 10  
@@ -61,9 +108,11 @@ class ObstacleType(Enum):
     ENEMY = 1
     CONSTRUCTION_ZONE = 2
 
+
 class Direction(Enum):
     BACKWARD = 0
     FORWARD = 1
+
 
 class Task:
     def __init__(self, id: int, position: Pose2D, type: TaskType, direction: Direction ,
@@ -79,7 +128,6 @@ class Task:
         self.linear_acceleration = linear_acceleration
         self.angular_acceleration = angular_acceleration
         self.subtask_list = subtask_list
-        
 
 
 class SubTask(ABC): #ABSTRACT CLASS
@@ -97,7 +145,6 @@ class NavSubTask(SubTask):
         self.linear_velocity = linear_velocity
         self.angular_velocity = angular_velocity
         
-
 
 class MechanismSubTask(SubTask):
     def __init__(self, order: int, type: int, mechanism_subtask_type: MachanismSubTaskType):
@@ -153,6 +200,7 @@ tasks = [Task(id=0, position=Pose2D(x=1234.0, y=123.0, theta=float(655.0)), type
     Task(id=7, position=Pose2D(x=2669.0, y=396.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.BACKWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=[]),
     Task(id=8, position=Pose2D(x=2669.0, y=1323.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.BACKWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id8),
     Task(id=9, position=Pose2D(x=2669.0, y=1323.0, theta=float(0.0)), type=TaskType.RETURN_TO_FINISH_SPOT,direction=Direction.BACKWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=[]),]
+
 common_tasks = [
     Task(id=0, position=Pose2D(x=1234.0, y=123.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=[]),  
     Task(id=1, position=Pose2D(x=1069.0, y=707.7, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=[]),
@@ -250,6 +298,7 @@ def communication_instances_init():
     
 
 ############################# FUNCTIONS #####################
+
 def convert_to_subtask_list_msg (subtask_list: List['SubTask']):
     subtask_list_msg = []
 

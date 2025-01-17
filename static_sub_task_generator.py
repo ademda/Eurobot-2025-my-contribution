@@ -1,3 +1,27 @@
+"""
+Author: <Adem Daly>
+
+Description:
+    This module is responsible for :
+    -returning the next subtask navigation point if the next subtask is a navigation subtask
+    -executing mechanism subtasks if the next subtask is a mechanism subtask
+
+Note:
+    -Maybe I need to add a publisher to inform the statemachine node that the mechanism subtask is done    
+    -If i will add new subscrrbers or publishers i need to create a new node for each one of them
+Classes:
+    -GetNextSubTaskService: a service that will return the next subtask to the statemachine node
+    -GetAvailableTasksClient: a client that will request the available tasks from the task generator node
+
+Nodes:
+    -get_next_subtask_service
+    -get_available_tasks_client_for_sub_task
+
+Functions:
+    -command_mechanism: this function will command the mechanism using the mechanism module
+    -communication_instances_init: initializes the clients and servers instances
+
+"""
 import rclpy
 from rclpy.node import Node
 from enum import Enum
@@ -25,10 +49,28 @@ class Clients:
 
 class GetNextSubTaskService(Node):
 
+    """
+    this class is a service that will return the next subtask to the statemachine node
+    request:
+    int32 current_task_id
+    int32 current_subtask_order
+    ---
+    response:
+    int32 current_subtask_order
+    float32 nav_target_x
+    float32 nav_target_y
+    float32 nav_target_angle
+    bool nav_is_forward
+    int8 nav_linear_velocity_choice
+    int8 nav_angular_velocity_choice
+    int8 nav_linear_acceleration_choice
+    int8 nav_angular_acceleration_choice
+    """
     def __init__(self):
         super().__init__('get_next_subtask_service')
         self.srv = self.create_service(GetNextSubTaskPoint, 'get_next_subtask', self.handle_get_next_subtask)
         self.get_logger().info('Created get_next_subtask Service')    
+
     def handle_get_next_subtask(self, request, response):
         global available_tasks
         global clients_instance
@@ -68,6 +110,13 @@ class GetNextSubTaskService(Node):
             return response
             
 class GetAvailableTasksClient(Node):
+
+    """
+    this class is a client that will request the available tasks from the task generator node
+    request:None
+    ---
+    response:TaskMsg[] tasks
+    """
     def __init__(self):
         super().__init__('get_available_tasks_client_for_sub_task')
         self.client = self.create_client(GetAvailableTasks, 'get_available_tasks')
@@ -115,6 +164,12 @@ class GetAvailableTasksClient(Node):
 ################# SUBTASK HANDLING FUNCTIONS ###############
 
 def command_mechanism(next_subtask):
+    """
+    this function will command the mechanism using the mechanism module
+    i think i need to add a service to tell the statemachine node that the mechanism subtask is done
+    instead of executing a delay in the smach node
+    or i can call the mechanism functions in the samch node itself(i don't recommend it)
+    """
     return True
 
 ################# COMMUNICATION INIT FUNCTION ###############

@@ -1,3 +1,47 @@
+"""
+Author: <Adem Daly>
+
+Description:
+    This module is responsible for : 
+        - Deciding which is the next task that should be executed :
+            either a NORMAL_NAV task or BUILDING_PICKUP task or BUILDING_DROPDOWN task 
+            or BONDEROLE_POSE or RETURN_TO_FINISH_SPOT
+
+Note: 
+    - right now, the task decision is task based on tasks_list[]            
+    - should include generating path to task for the robot to follow based on rrt algorithm
+    -should include get enemy position(subscriber) and map obstacles(client)
+    - should include demi static strategy where the next task isn't based on tasks_list[] but
+    on: 
+        - avaliable_tasks got from static_task_generator node
+        - enemy_position
+        - my position
+        ///for the near future i can decide a fixed sequence of what the robot should do in order
+        and i remove the task that the enemy robot near (the crossing of enemy robot to that task 
+        will be handled by thet static_task_generator node),i should handle the switches in the order of tasks
+        based on what the enemy robot has done:if he did building pickup,should go to buildign pickup
+        not to building drop down because i will be empty handed, so either the list wil change or i will
+        not choose by sequence 
+
+Classes:
+    - Strategy: includes the main logic of the strategy server(tasks decision and functions to get enemy position and map obstacles)         
+    - Services: includes the services that the strategy server provides:
+        -GetNextTaskPointService: service that provides the next task point to the StateMachine
+    - Clients: includes the clients that the strategy server uses to communicate with other nodes
+        -GetAvailableTasksClient: client that requests the available tasks from the static_task_generator node
+        /should include the client that requests the map obstacles
+    -Subscribers:
+        -should include the subscriber that gets the enemy position     
+
+Functions:
+    - get_available_tasks: requests the available tasks from the static_task_generator node
+    - get_task_from_id: returns the task object from the available_tasks list based on the task_id
+    - get_next_task: returns the next task to be executed based on the id of the current task
+    - convert_task_to_response_msg: converts a TaskMsg object to a GetNextTaskPoint.Response object for the state machine node
+    - communication_instances_init: initializes the communication instances
+
+"""
+
 import rclpy
 import threading
 from rclpy.executors import MultiThreadedExecutor
@@ -19,6 +63,7 @@ available_tasks = []
 tasks_list=[2, 5, 8, 9] #based on task id
 
 ################# CLASSES ##################
+
 def get_available_tasks():
         global clients_instance
         clients_instance.get_available_tasks_client.send_request()
@@ -98,7 +143,13 @@ class GetAvailableTasksClient(Node):
             print("No available tasks.")
 
 class GetNextTaskPointService(Node):
-    
+    """
+    here the flow of the commands is :
+        1-the statemachine node sends a request to get the ext point to go to
+        2-the strategy node gets the avaliable tasks from the static_task_generator node
+        3-the strategy node decides which is the next task to go to based on the tasks_list[] 
+        and the task_id that the state machine node sent(sends the next id and it's caracterisations) 
+    """
     def __init__(self):    
         super().__init__('get_next_task_point_service')
         self.srv = self.create_service(GetNextTaskPoint, 'get_next_task_point_service', self.handle_get_next_task_point_callback)
@@ -148,6 +199,10 @@ def get_task_from_id(task_id):
             return task  # Return the task when found
     
 def get_next_task(task_id):
+    """
+    Note:if (task_id == -100):the statemachine node will send -100
+    when current_stask = None:we start the match now
+    """
     global available_tasks
     global tasks_list
     if (task_id == -100):
