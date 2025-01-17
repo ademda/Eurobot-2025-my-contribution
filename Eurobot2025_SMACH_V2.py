@@ -1,3 +1,41 @@
+"""
+Author: <Adem Daly>
+
+Description:
+    This code conations the state machine logic for the Master node.
+    The state machine is implemented using the smach library.
+
+Classes:
+    - MainStateMachine: The main state machine class that contains all the states and transitions.
+    - Idle: The Idle state class.
+    - Init: The Init state class.
+    - WaitForSignal: The WaitForSignal state class.
+    - MoveOn: The MoveOn state class.
+    - WaitToReach: The WaitToReach state class.
+    - DestinationReached: The DestinationReached state class.
+    - Building_PickUp_Init: The Building_PickUp_Init state class.
+    - Building_PickUp_MoveOn: The Building_PickUp_MoveOn state class.
+    - Building_PickUp_WaitToReach: The Building_PickUp_WaitToReach state class.
+    - Building_PickUp_DestinationReached: The Building_PickUp_DestinationReached state class.
+    - Building_DropDown_Init: The Building_DropDown_Init state class.
+    - Building_DropDown_MoveOn: The Building_DropDown_MoveOn state class.
+    - Building_DropDown_WaitToReach: The Building_DropDown_WaitToReach state class.
+    - Building_DropDown_DestinationReached: The Building_DropDown_DestinationReached state class.
+    - BlockageDetected: The BlockageDetected state class.
+    - SuddenStop: The SuddenStop state class.
+    - WaitSuddenStop: The WaitSuddenStop state class.
+    - ConfirmedStop: The ConfirmedStop state class.
+    - Finished: The Finished state class.
+
+    Explanation of classes structure decision:
+        -from Idle class to DestinationReached class: these classes are for navigation tasks.
+        -from Building_PickUp_Init class to Building_DropDown_DestinationReached class: these 
+        classes are for building tasks: either going to intermediate tasks points or commanding mechanisms
+        -BlockageDetected class: this class is when the robot gets blocked.
+        -From SuddenStop to ConfirmedStop:these classes are when the enemy robot is near and we need to stop our robot.
+        -Finished class: this class is when the robot finishes all tasks or the allowed time ends.
+"""
+
 import rclpy
 import smach
 import threading
@@ -14,6 +52,13 @@ from std_msgs.msg import Int32
 
 ##################################### TYPEDEF ENUMS HERE ####################################
 
+"""
+Enum for the Navigator states:
+    these states represent the states of the STM32 Navigator StateMachine used 
+    that the Master keeps track of the STM32 current state(there are more states in the STM32
+    chip but we reduced to only what we need to know)
+"""
+
 class MASTER_NavigatorStates_ten(Enum):
 
     MASTER_NavigatorIdle_en = 0
@@ -24,6 +69,11 @@ class MASTER_NavigatorStates_ten(Enum):
     MASTER_NavigatorConfirmedStop_en = 5
     MASTER_NavigatorInit_en = 6
 
+"""
+Enum for the Master states:
+   these states represent the states of the Raspberry (Master) StateMachine used
+   to keep track of the current state of the Master
+"""
 
 class MASTER_SMachineStates_ten(Enum):
 
@@ -46,13 +96,17 @@ class MASTER_SMachineStates_ten(Enum):
     MASTER_SMachine_Building_DropDown_DestinationReached_en = 16
     MASTER_SMachine_Building_DropDown_Finish_en = 17
 
+"""
+STM32 State: These states are the states that the can returns to the state machine
+we use them to transition between states
+"""
 
 """STM32 State:
 
     0:MASTER_NavigatorIdle_en,                        
     1:MASTER_NavigatorReady_en,                       
     2:MASTER_NavigatorBusy_en,                        
-	3:Nav_NvigatorWaitToReceiveAcknowledge_en,        
+	3:MASTER_NavigatorWaitToReceiveAcknowledge_en,        
     4:MASTER_NavigatorReachedDest_en,                
 	5:MASTER_NavigatorOrderSuddenStop_en,             
 	6:MASTER_NavigatorSuddenStop_en,                  
@@ -414,10 +468,18 @@ class Building_PickUp_MoveOn(smach.State):
         signal.signal(signal.SIGINT, exit_handler)
         response = get_next_subtask()
         if (response.current_subtask_order == -1):
+            """
+            the subtask generator node returns -1 if all subtasks are done
+            so we need to return to normal navigation
+            """
             return 'Go to: MoveOn'
-        
         elif(response.nav_target_x == 0.0 and response.nav_target_y == 0.0):
+            """
+            here if the subtask is a mechanism command.the subtask generator node will return
+            an absurd positiion(0.0) so we know we will comamnd a mechanism
+            """
             wait_mechanism_mouvement()
+            #the wait for mechanism to end his function should block until the mechanism is done
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_DestinationReached_en
             next_subtask_order = current_subtask_order + 1 
             return 'Go to: Building_PickUp_DestinationReached'
@@ -658,6 +720,7 @@ class Finished(smach.State):
 ########################################## PUBLISHERS CLASS ###############################################
 
 class Publishers(Node):
+
     def __init__(self):
         super().__init__('publishers')
 
@@ -690,8 +753,9 @@ class Subscribers(Node):
     
     
 
-#for testing 
+#for testing without the stm32 returning the real robot state
 class NavigatorStateSubscriber(Node):
+
     def __init__(self):
         super().__init__('navigator_state_subscriber')
         self.nav_current_state_simulation = self.create_subscription(Int32,'simulation_navigator_state',
@@ -710,13 +774,16 @@ class NavigatorStateSubscriber(Node):
 ########################################## CLIENTS CLASSES ##############################################
 
 class Clients():
+
     global clients_instance
 
     def __init__(self):
         self.get_next_task_point_client = GetNextTaskPointClient()
         self.get_next_subtask_client = GetNextSubTaskPointClient()
         
+
 class GetNextTaskPointClient(Node):
+
     def __init__(self):
         super().__init__('get_next_task_point_client')
         self.client = self.create_client(GetNextTaskPoint, 'get_next_task_point_service')
@@ -731,6 +798,7 @@ class GetNextTaskPointClient(Node):
         
         self.get_logger().info('Sending request for available tasks...')
         if (current_task is None):
+            #here send -100 so the strategy node knows that the current_stask = Nonde: we start the match now
             request.task_id = -100
         # Send the request and block until a response is received
         else:
@@ -783,6 +851,7 @@ class GetNextTaskPointClient(Node):
 
 
 class GetNextSubTaskPointClient(Node):
+
     def __init__(self):
         super().__init__('get_next_subtask_client')
         self.client = self.create_client(GetNextSubTaskPoint, 'get_next_subtask')
@@ -840,6 +909,8 @@ def convert_next_subtask_to_nav_order(current_subtask_msg: GetNextSubTaskPoint.R
 
 def wait_mechanism_mouvement():
     time.sleep(5)
+    #here i can block until the subtask generator node returns publishes that the mechanism ended his action
+    #than i go to destination reached
     #should implement wait time for each mechanism mouvement type
 
 def communication_instances_init():
@@ -964,11 +1035,6 @@ def main(args=None):
 
         # Wait for the executor's spin thread to finish
         spin_thread.join()
-
-# A simple exit handler for SIGINT (Ctrl+C)
-def exit_handler(signum, frame):
-    print("Exiting gracefully...")
-    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
