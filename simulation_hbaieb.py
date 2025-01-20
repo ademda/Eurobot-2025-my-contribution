@@ -27,7 +27,8 @@ max_map_height = HEIGHT
 
 # Calculate the scale factor to fit the image within the map area while preserving the aspect ratio
 scale_factor = min(max_map_width / map_original_width, max_map_height / map_original_height)
-scale_px_to_mm=3000/MAP_WIDTH
+
+#scale_px_to_mm=2500/MAP_WIDTH
 # Calculate the new dimensions of the image
 new_map_width = int(map_original_width * scale_factor)
 new_map_height = int(map_original_height * scale_factor)
@@ -39,8 +40,12 @@ scaled_map_image = pygame.transform.scale(map_image, (new_map_width, new_map_hei
 map_x = CONTROL_WIDTH + (max_map_width - new_map_width) // 2  # Center horizontally within map area
 map_y = (max_map_height - new_map_height) // 2  # Center vertically within map area
 
+mm_to_px_factor=MAP_WIDTH/3000
+robot_x=0
+robot_y=0
 # Load the robot image
 robot_image = pygame.image.load('robot.png')
+#robot_image = pygame.Rect(robot_x, robot_y, 360*mm_to_px_factor,240*mm_to_px_factor)
 
 # Get the original dimensions of the robot image
 robot_original_width, robot_original_height = robot_image.get_size()
@@ -50,7 +55,7 @@ new_robot_width = int(robot_original_width * scale_factor)
 new_robot_height = int(robot_original_height * scale_factor)
 
 # Scale the robot image
-scaled_robot_image = pygame.transform.scale(robot_image, (new_robot_width, new_robot_height))
+scaled_robot_image = pygame.transform.scale(robot_image, (240*mm_to_px_factor,360*mm_to_px_factor))
 path_points = []
 
 # Initialize Pygame
@@ -189,6 +194,7 @@ class Robot:
         self.robot_image=scaled_robot_image
         self.isForward=True
         self.is_dragging=False
+        self.navigation_offset=42.2
 
     def draw(self, surface:pygame.Surface):
         # Adjust the robot's position to the scaled map
@@ -200,9 +206,16 @@ class Robot:
         self.robot_image=rotated_robot_image
 
         robot_edge_center_x, robot_edge_center_y=self.get_robot_edge_center()
-        # robot_x_projection=self.new_robot_diameter*math.cos(math.radians(self.angle)-math.atan2(new_robot_height,new_robot_width))
-        # robot_y_projection=self.new_robot_diameter*math.sin(math.radians(self.angle)+math.atan2(new_robot_height,new_robot_width))
+        #robot_x_projection=self.new_robot_diameter*math.cos(math.radians(self.angle)-math.atan2(new_robot_height,new_robot_width))
+        #robot_y_projection=self.new_robot_diameter*math.sin(math.radians(self.angle)+math.atan2(new_robot_height,new_robot_width))
+        
+        
+        # chasis_center_x, chasis_center_y=self.get_robot_center()
+        # robot_center_x, robot_center_y=chasis_center_x-self.navigation_offset*math.cos(self.angle), chasis_center_y + self.navigation_offset*math.sin(self.angle)
+
         robot_center_x, robot_center_y=self.get_robot_center()
+
+        
 
         # Draw the scaled robot image at the adjusted position
         surface.blit(self.robot_image, (adjusted_x - robot_center_x, adjusted_y - robot_center_y))  # Center the robot image
@@ -339,18 +352,18 @@ def get_mm_coordinates(mouse_x, mouse_y):
     if mouse_x<map_x:
         x_mm_coordinates=0
     else:
-        x_mm_coordinates=(min((abs((mouse_x-map_x)/new_map_width)*2500),2500))
+        x_mm_coordinates=(min((abs((mouse_x-map_x)/new_map_width)*3000),3000))
 
     if mouse_y>map_y+new_map_height:
         y_mm_coordinates=0
     else:
-        y_mm_coordinates=(min(abs(((mouse_y-map_y)/new_map_height*1850)-1850),1850))
+        y_mm_coordinates=(min(abs(((mouse_y-map_y)/new_map_height*2000)-2000),2000))
 
     return x_mm_coordinates,y_mm_coordinates
 
 def get_px_coordinates(x_mm_coordinates, y_mm_coordinates):
-    x_px_coordinates=(x_mm_coordinates/2500)*new_map_width+map_x
-    y_px_coordinates=(abs(1850-y_mm_coordinates)/1850)*new_map_height+map_y
+    x_px_coordinates=(x_mm_coordinates/3000)*new_map_width+map_x
+    y_px_coordinates=(abs(2000-y_mm_coordinates)/2000)*new_map_height+map_y
 
     return x_px_coordinates,y_px_coordinates
 

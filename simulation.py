@@ -21,7 +21,7 @@ ROBOT_LENGTH_PX = int(ROBOT_LENGTH_MM * SCALE_X)
 ROBOT_WIDTH_PX = int(ROBOT_WIDTH_MM * SCALE_Y)
 
 # Robot movement speed (in pixels per frame)
-SPEED = 2  # Change this value to control robot speed
+SPEED = 4  # Change this value to control robot speed
 
 # Rotation speed (degrees per frame)
 ROTATION_SPEED = 1  # Speed at which robot rotates towards the target angle
@@ -102,7 +102,6 @@ def calculate_angle_to_target(robot_x, robot_y, target_x, target_y):
 def rotate_towards_target(robot_angle, target_angle, rotation_speed):
     """Rotate the robot slowly towards the target orientation."""
     angle_diff = (target_angle - robot_angle + 180) % 360 - 180  # Normalize the angle difference to [-180, 180]
-
     # Rotate the robot gradually
     if abs(angle_diff) < rotation_speed:
         return target_angle  # If the difference is small enough, we can directly set the angle
@@ -111,6 +110,9 @@ def rotate_towards_target(robot_angle, target_angle, rotation_speed):
         return robot_angle + rotation_speed
     else:
         return robot_angle - rotation_speed
+
+def axis_conversion(y):
+    return abs(y - 2000)
 
 def main(args=None):
     # Initialize ROS 2
@@ -153,12 +155,17 @@ def main(args=None):
                 robot_simulation_node.robot_x, robot_simulation_node.robot_y, 
                 robot_simulation_node.target_x, robot_simulation_node.target_y
             )
+
+            distance_to_target = math.hypot(
+                    robot_simulation_node.robot_x - robot_simulation_node.target_x, 
+                    robot_simulation_node.robot_y - robot_simulation_node.target_y)
             
             # Rotate the robot to face the target position
-            robot_simulation_node.robot_angle = rotate_towards_target(
-                robot_simulation_node.robot_angle, target_angle, ROTATION_SPEED
-            )
-
+            if distance_to_target >= SPEED:
+                robot_simulation_node.robot_angle = rotate_towards_target(
+                    robot_simulation_node.robot_angle, target_angle, ROTATION_SPEED
+                )
+            
             # Once the robot is facing the target, move towards it
             if abs(robot_simulation_node.robot_angle - target_angle) < 1:  # A small threshold for orientation
                 robot_simulation_node.robot_x, robot_simulation_node.robot_y = move_towards_target(
@@ -173,20 +180,22 @@ def main(args=None):
                 )
 
                 # Stop the robot when it's close enough to the target position
-                if distance_to_target < SPEED:
-                    robot_simulation_node.robot_angle = rotate_towards_target(
-                        robot_simulation_node.robot_angle, robot_simulation_node.target_angle, ROTATION_SPEED
-                    )
+
+            if distance_to_target < SPEED:
+                robot_simulation_node.robot_angle = rotate_towards_target(
+                    robot_simulation_node.robot_angle, robot_simulation_node.target_angle, ROTATION_SPEED
+                )    
+                
 
         # Draw the map background
         screen.blit(map_image, (0, 0))  # Draw the map at the top-left corner
 
         # Convert robot's position (mm) to pixels
         robot_x_px = int(robot_simulation_node.robot_x * SCALE_X)
-        robot_y_px = int(robot_simulation_node.robot_y * SCALE_Y)
+        robot_y_px = int(axis_conversion(robot_simulation_node.robot_y) * SCALE_Y)
 
         # Rotate the robot image to match its angle
-        rotated_robot = pygame.transform.rotate(robot_image, -robot_simulation_node.robot_angle)
+        rotated_robot = pygame.transform.rotate(robot_image, robot_simulation_node.robot_angle)
 
         # Get the rotated image rectangle and update position
         robot_rect = rotated_robot.get_rect(center=(robot_x_px, robot_y_px))
@@ -194,7 +203,7 @@ def main(args=None):
 
         # Draw a line between the robot's current position and target position
         target_x_px = int(robot_simulation_node.target_x * SCALE_X)
-        target_y_px = int(robot_simulation_node.target_y * SCALE_Y)
+        target_y_px = int(axis_conversion(robot_simulation_node.target_y) * SCALE_Y)
         pygame.draw.line(screen, (255, 0, 0), (robot_x_px, robot_y_px), (target_x_px, target_y_px), 2)
 
         # Update the display
