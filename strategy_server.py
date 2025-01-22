@@ -60,7 +60,7 @@ servers_instance = None
 strategy_instance = None
 
 available_tasks = []
-tasks_list=[2, 5, 8, 9] #based on task id
+tasks_list=[2, 5, 8, 9] #based on task id 2, 5, 8, 9
 
 ################# CLASSES ##################
 
@@ -121,14 +121,14 @@ class GetAvailableTasksClient(Node):
                 response = self.future.result()  # Get the response from the service
                 available_tasks = response.tasks
                 self.get_logger().warn(f'Received tasks: {response.tasks}')
-                #self.process_response(available_tasks)
+                self.process_response(available_tasks)
             except Exception as e:
                 self.get_logger().error(f'Service call failed: {e}')
 
     def process_response(self, tasks):
         if tasks:
             for idx, task in enumerate(tasks):
-                print(f"Task {idx + 1}:")
+                print(f"Task {idx}:")
                 print(f"  ID: {task.id}")
                 print(f"  Position: (x={task.position.x}, y={task.position.y}, theta={task.position.theta})")
                 print(f"  Type: {task.type}")
@@ -234,12 +234,13 @@ def convert_task_to_response_msg(task: TaskMsg, response:GetNextTaskPoint.Respon
 def main(args=None):
     global strategy_instance
     global clients_instance
+    print("AAAAAAAAAAAAAAAAAA")
     rclpy.init(args=args)
     communication_instances_init()
 
     # Initialize the global strategy instance
     strategy = Strategy()
-
+    
     # Create a MultiThreadedExecutor to manage both nodes concurrently
     executor = MultiThreadedExecutor()
 
