@@ -268,6 +268,8 @@ class Idle(smach.State):
         signal.signal(signal.SIGINT, exit_handler)
         send_acknowledge_signal()
         time.sleep(communication_wait_time)
+        time.sleep(1)
+        print("SLEEEEEP MORE")
         if(current_navigator_state == 8):
             MASTER_CurrentNavigatorState_en == MASTER_NavigatorStates_ten.MASTER_NavigatorReady_en
             MASTER_SMachineCurrentState_en == MASTER_SMachineStates_ten.MASTER_SMachine_WaitForSignal_en
@@ -350,6 +352,10 @@ class MoveOn(smach.State):
         if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
             send_acknowledge_signal()
             time.sleep(communication_wait_time)
+        elif (current_navigator_state == 3):#Added  teh wait to receive acknowledge condition
+            send_acknowledge_signal()
+            time.sleep(communication_wait_time)  # Use time.sleep in ROS 2
+            return 'Go to: MoveOn'    
         elif (current_navigator_state == 2):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_WaitToReach_en
@@ -409,7 +415,7 @@ class DestinationReached(smach.State):
         global current_task
         signal.signal(signal.SIGINT, exit_handler)
         send_acknowledge_signal()
-        time.sleep(communication_wait_time)
+        time.sleep(1)#CAUTIION
 
         if(current_navigator_state == 1):
             if (current_task.type == TaskType.RETURN_TO_FINISH_SPOT.value):
@@ -506,7 +512,7 @@ class Building_PickUp_WaitToReach(smach.State):
         global current_navigator_state #returned as a msg
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
-        time.sleep(3)
+        #time.sleep(3)
         signal.signal(signal.SIGINT, exit_handler)
         if(current_navigator_state == 3):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
@@ -530,7 +536,7 @@ class Building_PickUp_DestinationReached(smach.State):
         global current_subtask_order
         global next_subtask_order
         current_subtask_order = next_subtask_order
-        time.sleep(3)#CAAAAAAAAAAAAAAAAAAAUUUUUTION
+        #time.sleep(3)#CAAAAAAAAAAAAAAAAAAAUUUUUTION
         signal.signal(signal.SIGINT, exit_handler)
         send_acknowledge_signal()
         time.sleep(communication_wait_time)
@@ -609,7 +615,7 @@ class Building_DropDown_WaitToReach(smach.State):
         global current_navigator_state #returned as a msg
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
-        time.sleep(3)
+        #time.sleep(3)
         signal.signal(signal.SIGINT, exit_handler)
         if(current_navigator_state == 3):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
@@ -633,7 +639,7 @@ class Building_DropDown_DestinationReached(smach.State):
         global current_subtask_order
         global next_subtask_order
         current_subtask_order = next_subtask_order
-        time.sleep(3)#CAAAAAAAAAAAAAAAAAAAUUUUUTION
+        #time.sleep(3)#CAAAAAAAAAAAAAAAAAAAUUUUUTION
         signal.signal(signal.SIGINT, exit_handler)
         send_acknowledge_signal()
         time.sleep(communication_wait_time)
@@ -653,7 +659,7 @@ class BlockageDetected(smach.State):
     
     def execute(self, userdata):
         signal.signal(signal.SIGINT, exit_handler)
-        time.sleep(1)  #()
+        #time.sleep(1)  #()
         if(True):
             return 'Go to: MoveOn'
         else:
@@ -668,7 +674,7 @@ class SuddenStop(smach.State):
     
     def execute(self, userdata):
         signal.signal(signal.SIGINT, exit_handler)
-        time.sleep(1)  #()
+        #time.sleep(1)  #()
         if(True):
             return 'Go to: WaitSuddenStop'
         else:
@@ -683,7 +689,7 @@ class WaitSuddenStop(smach.State):
     
     def execute(self, userdata):
         signal.signal(signal.SIGINT, exit_handler)
-        time.sleep(1)  #()
+        #time.sleep(1)  #()
         if(True):
             return 'Go to: ConfirmedStop'
         else:
@@ -698,7 +704,7 @@ class ConfirmedStop(smach.State):
     
     def execute(self, userdata):
         signal.signal(signal.SIGINT, exit_handler)
-        time.sleep(1)  #()
+        #time.sleep(1)  #()
         if(True):
             return 'Go to: MoveOn'
         else:
@@ -712,7 +718,7 @@ class Finished(smach.State):
     
     def execute(self, userdata):
         signal.signal(signal.SIGINT, exit_handler)
-        time.sleep(1)  #()
+        #time.sleep(1)  #()
         if(True):
             return 'Go to: Finished'
         
@@ -732,7 +738,6 @@ class Publishers(Node):
 
         self.get_logger().info(f"Initialised all publishers ")    
 
-
 ########################################## SUBSCRIBERS CLASS ###############################################
 
 class Subscribers(Node):
@@ -747,12 +752,16 @@ class Subscribers(Node):
     def Navigator_Receive_Position_Subscriber_callback(self ,nav_data: NavigatorNavigationMessage):
         global current_position
         global current_navigator_state
-        self.get_logger().info(f"Received: navigation data")    
+        #self.get_logger().info(f"Received: navigation data")    
         current_position = Pose2D(x=nav_data.nav_current_x, y=nav_data.nav_current_y, theta=nav_data.nav_current_angle)
         current_navigator_state = nav_data.nav_current_state
     
-    
+"""class SuddenStopStateSubscriber(Node):
 
+    def __init__(self):
+        super.__init__('sudden_stop_state_subscriber')
+        self.subscriber = self.create_subscription    
+"""
 #for testing without the stm32 returning the real robot state
 class NavigatorStateSubscriber(Node):
 
@@ -878,7 +887,6 @@ class GetNextSubTaskPointClient(Node):
                 return None      
 
 
-
 ########################################## UTILITY FUNCTIONS ############################################
 
 def convert_next_task_to_nav_order(current_task: Task):
@@ -998,7 +1006,9 @@ def main(args=None):
 
     # Create all nodes
     current_nav_state_sub = NavigatorStateSubscriber()
-
+    #send_reset_signal()
+    #send_reset_signal() #to reset the stm32
+    #print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
     # Use MultiThreadedExecutor to spin all nodes concurrently
     executor = MultiThreadedExecutor()
 
