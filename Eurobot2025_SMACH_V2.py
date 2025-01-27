@@ -522,11 +522,21 @@ class Building_PickUp_MoveOn(smach.State):
             nav_order = convert_next_subtask_to_nav_order(response)
             send_target_order(nav_order)
             time.sleep(communication_wait_time)  
-            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_WaitToReach_en
-            MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
-            next_subtask_order = current_subtask_order + 1 
-            return 'Go to: Building_PickUp_WaitToReach'
-                    
+            if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
+                send_acknowledge_signal()
+                time.sleep(communication_wait_time)
+                return 'Go to: Building_PickUp_MoveOn'
+            elif (current_navigator_state == 3):#Added  teh wait to receive acknowledge condition
+                send_acknowledge_signal()
+                time.sleep(communication_wait_time)  # Use time.sleep in ROS 2
+                return 'Go to: Building_PickUp_MoveOn'    
+            elif (current_navigator_state == 2):
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_WaitToReach_en
+                MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
+                next_subtask_order = current_subtask_order + 1 
+                return 'Go to: Building_PickUp_WaitToReach'            
+            else:
+                return 'Go to: Building_PickUp_MoveOn'          
         else:
             return 'Go to: Building_PickUp_MoveOn'            
     
@@ -637,10 +647,21 @@ class Building_DropDown_MoveOn(smach.State):
             nav_order = convert_next_subtask_to_nav_order(response)
             send_target_order(nav_order)
             time.sleep(communication_wait_time)  
-            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_WaitToReach_en
-            MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
-            next_subtask_order = current_subtask_order + 1 
-            return 'Go to: Building_DropDown_WaitToReach'
+            if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
+                send_acknowledge_signal()
+                time.sleep(communication_wait_time)
+                return 'Go to: Building_DropDown_MoveOn'
+            elif (current_navigator_state == 3):#Added  teh wait to receive acknowledge condition
+                send_acknowledge_signal()
+                time.sleep(communication_wait_time)  # Use time.sleep in ROS 2
+                return 'Go to: Building_DropDown_MoveOn'    
+            elif (current_navigator_state == 2):
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_WaitToReach_en
+                MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
+                next_subtask_order = current_subtask_order + 1 
+                return 'Go to: Building_DropDown_WaitToReach'
+            else:
+                return 'Go to: Building_DropDown_MoveOn'
                     
         else:
             return 'Go to: Building_DropDown_MoveOn'            
@@ -664,7 +685,7 @@ class Building_DropDown_WaitToReach(smach.State):
         signal.signal(signal.SIGINT, exit_handler)
         if(current_navigator_state == 3):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
-            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_DestinationReached_en
+            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_DestinationReached_en
             return 'Go to: Building_DropDown_DestinationReached'
         else:
             return 'Go to: Building_DropDown_WaitToReach'
