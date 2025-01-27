@@ -46,10 +46,11 @@ from rclpy.executors import MultiThreadedExecutor
 from enum import Enum
 from geometry_msgs.msg import Pose2D
 from ros_custom_messages.msg import MasterAcknowledgeSignal, MasterNavigationMessage, MasterResetSignal, MasterStopSignal, NavigatorNavigationMessage
-from ros_custom_messages.srv import GetNextTaskPoint, GetNextSubTaskPoint
+from ros_custom_messages.srv import GetNextTaskPoint, GetNextSubTaskPoint, DeleteTask
 from strategy.static_task_generator import Task, TaskType ,Direction, TaskTypeScore, SpeedChoice
 from std_msgs.msg import Int32, Bool
 from rclpy.qos import QoSProfile, ReliabilityPolicy
+from std_srvs.srv import Empty
 
 
 ##################################### TYPEDEF ENUMS HERE ####################################
@@ -143,8 +144,8 @@ current_navigator_state = None
 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorIdle_en
 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Idle_en
 
-init_position = MasterNavigationMessage(nav_target_x=100.0,
-                                        nav_target_y=100.0,
+init_position = MasterNavigationMessage(nav_target_x=1196.0,
+                                        nav_target_y=226.0,
                                         nav_target_angle=90.0,
                                         nav_is_forward=True,
                                         nav_linear_velocity_choice=0,
@@ -494,7 +495,9 @@ class Building_PickUp_MoveOn(smach.State):
         global MASTER_SMachineCurrentState_en
         global communication_wait_time
         global current_subtask_order
+        global current_task
         global next_subtask_order
+        global clients_instance
         signal.signal(signal.SIGINT, exit_handler)
         response = get_next_subtask()
         if (response.current_subtask_order == -1):
@@ -502,6 +505,7 @@ class Building_PickUp_MoveOn(smach.State):
             the subtask generator node returns -1 if all subtasks are done
             so we need to return to normal navigation
             """
+            clients_instance.delete_task_client.send_request(current_task.id)
             return 'Go to: MoveOn'
         elif(response.nav_target_x == 0.0 and response.nav_target_y == 0.0):
             """
@@ -615,9 +619,12 @@ class Building_DropDown_MoveOn(smach.State):
         global communication_wait_time
         global current_subtask_order
         global next_subtask_order
+        global clients_instance
+        global current_task
         signal.signal(signal.SIGINT, exit_handler)
         response = get_next_subtask()
         if (response.current_subtask_order == -1):
+            clients_instance.delete_task_client.send_request(current_task.id)
             return 'Go to: MoveOn'
         
         elif(response.nav_target_x == 0.0 and response.nav_target_y == 0.0):
@@ -874,7 +881,30 @@ class Clients():
     def __init__(self):
         self.get_next_task_point_client = GetNextTaskPointClient()
         self.get_next_subtask_client = GetNextSubTaskPointClient()
-        
+        self.delete_task_client = DeleteTaskClient()
+
+class DeleteTaskClient(Node):
+    def __init__(self):
+        super().__init__('delete_task_client')
+        self.client = self.create_client(DeleteTask, 'delete_task_service')
+        while not self.client.wait_for_service(timeout_sec=1.0):        
+            self.get_logger().info('Delete Task Service not available, waiting again...')
+        self.get_logger().warn('Delete Task Service is available, ready to send request!')
+    
+    def send_request(self, task_id):
+        request = DeleteTask.Request()
+        request.id = task_id
+        self.get_logger().info('Sending request to delete task...')
+        future = self.client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        if future.done():
+            try:
+                response = future.result()
+                self.get_logger().info(f"Task with id {task_id} has been deleted")
+            except Exception as e:
+                self.get_logger().error(f"Service call failed: {e}")
+                return None
+            
 
 class GetNextTaskPointClient(Node):
 
@@ -1015,6 +1045,7 @@ def communication_instances_init():
     publishers_instance = Publishers()
     subscribers_instance= Subscribers()
     clients_instance = Clients()
+    
 
 ########################################## SUBTASK FUNCTION  ############################################
 
@@ -1103,6 +1134,7 @@ def main(args=None):
     executor.add_node(subscribers_instance)
     executor.add_node(current_nav_state_sub)
     executor.add_node(subscribers_instance.lidar_obstacle_detected_subscriber)
+    executor.add_node(clients_instance.delete_task_client)
     # Register signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, exit_handler)
 
@@ -1125,6 +1157,7 @@ def main(args=None):
         subscribers_instance.destroy_node()
         current_nav_state_sub.destroy_node()
         subscribers_instance.lidar_obstacle_detected_subscriber.destroy_node()
+        clients_instance.delete_task_client.destroy_node()
 
         # Shutdown ROS 2
         rclpy.shutdown()
