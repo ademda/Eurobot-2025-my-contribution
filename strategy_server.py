@@ -46,9 +46,9 @@ import rclpy
 import threading
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
-from ros_custom_messages.srv import GetAvailableTasks
+from ros_custom_messages.srv import GetMapState
 from enum import Enum
-from ros_custom_messages.msg import TaskMsg
+from ros_custom_messages.msg import TaskMsg, ObstacleMsg
 from ros_custom_messages.srv import GetNextTaskPoint
 from strategy.static_task_generator import Task, SpeedChoice
 ############# GLOBAL VARIABLES ################
@@ -59,14 +59,11 @@ clients_instance = None
 servers_instance = None
 strategy_instance = None
 
+obstacle_positions = []
 available_tasks = []
-tasks_list=[2, 5, 8, 9] #based on task id 2, 5, 8, 9
+#tasks_list=[2, 5, 8, 9] #based on task id 2, 5, 8, 9
 
 ################# CLASSES ##################
-
-def get_available_tasks():
-        global clients_instance
-        clients_instance.get_available_tasks_client.send_request()
 
 class Strategy(Node):
     global clients_instance
@@ -94,13 +91,13 @@ class Services():
 
 class Clients():
     def __init__(self):
-        self.get_available_tasks_client = GetAvailableTasksClient()
+        self.get_map_state_client = GetMapStateClient()
 
 
-class GetAvailableTasksClient(Node):
+class GetMapStateClient(Node):
     def __init__(self):
-        super().__init__('get_available_tasks_client')
-        self.client = self.create_client(GetAvailableTasks, 'get_available_tasks')
+        super().__init__('get_map_state_client')
+        self.client = self.create_client(GetMapState, 'get_map_state_service')
 
         # Wait for the service to be available
         while not self.client.wait_for_service(timeout_sec=1.0):
@@ -109,7 +106,8 @@ class GetAvailableTasksClient(Node):
 
     def send_request(self):
         global available_tasks
-        request = GetAvailableTasks.Request()  # Create a request object
+        global obstacle_positions
+        request = GetMapState.Request()  # Create a request object
         self.get_logger().info('Sending request for available tasks...')
         
         # Call the service and block until the response is complete
@@ -120,12 +118,15 @@ class GetAvailableTasksClient(Node):
             try:
                 response = self.future.result()  # Get the response from the service
                 available_tasks = response.tasks
+                obstacle_positions = response.obstacle_positions
                 self.get_logger().warn(f'Received tasks: {response.tasks}')
-                self.process_response(available_tasks)
+                self.get_logger().warn(f'Received obstacle positions: {response.obstacle_positions}')
+
+                #self.process_response(available_tasks, obstacle_positions) removed it for easier debugging
             except Exception as e:
                 self.get_logger().error(f'Service call failed: {e}')
 
-    def process_response(self, tasks):
+    def process_response(self, tasks, obstacles):
         if tasks:
             for idx, task in enumerate(tasks):
                 print(f"Task {idx}:")
@@ -141,6 +142,15 @@ class GetAvailableTasksClient(Node):
                 print("-" * 40)  # Separator for clarity
         else:
             print("No available tasks.")
+
+        if obstacles:
+            for idx, obstacle in enumerate(obstacles):
+                print(f"Obstacle {idx}:")
+                print(f"  Position: (x={obstacle.x}, y={obstacle.y})")
+                print("-" * 40)
+        else:    
+            print("No obstacles.")
+
 
 class GetNextTaskPointService(Node):
     """
@@ -159,11 +169,14 @@ class GetNextTaskPointService(Node):
         global available_tasks
         global strategy_instance
         global clients_instance
+        global obstacle_positions
         self.get_logger().info('Got a request about next task... Now sending a response')
-        get_available_tasks()
-        next_task = get_next_task(request.task_id)
+        get_map_state()
+        #next_task = get_next_task(request.task_id) #heer i changed to returning the next
+        #available task in teh available_tasks list
         response = GetNextTaskPoint.Response()
         # Convert the task to the response message format
+        next_task = available_tasks[0]
         response = convert_task_to_response_msg(next_task, response)
         print(next_task.id)
         print(next_task.type)
@@ -192,13 +205,17 @@ def communication_instances_init():
     
 ################## UTILITY FUNCTIONS ###################
 
+def get_map_state():
+        global clients_instance
+        clients_instance.get_map_state_client.send_request()
+
 def get_task_from_id(task_id):
     global available_tasks
     for task in available_tasks:
         if task.id == task_id:
             return task  # Return the task when found
     
-def get_next_task(task_id):
+def get_next_task(task_id): #I no longer use this function
     """
     Note:if (task_id == -100):the statemachine node will send -100
     when current_stask = None:we start the match now
@@ -246,7 +263,7 @@ def main(args=None):
 
     # Add both nodes to the executor
     executor.add_node(servers_instance.get_next_task_point_service)
-    executor.add_node(clients_instance.get_available_tasks_client)
+    executor.add_node(clients_instance.get_map_state_client)
     executor.add_node(strategy)
 
     try:

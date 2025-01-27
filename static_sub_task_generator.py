@@ -28,24 +28,23 @@ from enum import Enum
 from geometry_msgs.msg import Pose2D
 from typing import List
 from typing import Tuple
-from ros_custom_messages.srv import GetAvailableTasks, GetNextSubTaskPoint
-from ros_custom_messages.msg import TaskMsg, SubTaskMsg
-from strategy.static_task_generator import Task, SubTaskType, MachanismSubTaskType, MechanismSubTask, NavSubTask
+from ros_custom_messages.srv import GetMapState, GetNextSubTaskPoint
+from ros_custom_messages.msg import TaskMsg, SubTaskMsg, ObstacleMsg
+from strategy.static_task_generator import Task, SubTaskType, MachanismSubTaskType, MechanismSubTask, NavSubTask, TaskType, Direction, TaskTypeScore, SpeedChoice
 ################################## GLOBAL VARIABLES #############################
 
 servers_instance = None
 clients_instance = None
 available_tasks = []
-
 ###################################### SERVERS CLASSES ###################################
 
 class Services:
     def __init__(self):
-        self.get_available_tasks_service = GetNextSubTaskService()
+        self.get_next_subtask_service = GetNextSubTaskService()
 
 class Clients:
     def __init__(self):
-        self.get_available_tasks_client = GetAvailableTasksClient()
+        self.get_available_tasks_client = GetMapStateClient()
 
 class GetNextSubTaskService(Node):
 
@@ -109,17 +108,10 @@ class GetNextSubTaskService(Node):
             self.get_logger().info(f'Returning special response for end of tasks: {response}')
             return response
             
-class GetAvailableTasksClient(Node):
-
-    """
-    this class is a client that will request the available tasks from the task generator node
-    request:None
-    ---
-    response:TaskMsg[] tasks
-    """
+class GetMapStateClient(Node):
     def __init__(self):
-        super().__init__('get_available_tasks_client_for_sub_task')
-        self.client = self.create_client(GetAvailableTasks, 'get_available_tasks')
+        super().__init__('get_map_state_client')
+        self.client = self.create_client(GetMapState, 'get_map_state_service')
 
         # Wait for the service to be available
         while not self.client.wait_for_service(timeout_sec=1.0):
@@ -128,7 +120,7 @@ class GetAvailableTasksClient(Node):
 
     def send_request(self):
         global available_tasks
-        request = GetAvailableTasks.Request()  # Create a request object
+        request = GetMapState.Request()  # Create a request object
         self.get_logger().info('Sending request for available tasks...')
         
         # Call the service and block until the response is complete
@@ -147,7 +139,7 @@ class GetAvailableTasksClient(Node):
     def process_response(self, tasks):
         if tasks:
             for idx, task in enumerate(tasks):
-                print(f"Task {idx + 1}:")
+                print(f"Task {idx}:")
                 print(f"  ID: {task.id}")
                 print(f"  Position: (x={task.position.x}, y={task.position.y}, theta={task.position.theta})")
                 print(f"  Type: {task.type}")
@@ -159,7 +151,8 @@ class GetAvailableTasksClient(Node):
                 print(f"  Angular Acceleration Choice: {task.nav_angular_acceleration_choice}")
                 print("-" * 40)  # Separator for clarity
         else:
-            print("No available tasks.")       
+            print("No available tasks.")
+ 
 
 ################# SUBTASK HANDLING FUNCTIONS ###############
 
@@ -194,10 +187,10 @@ def print_all_subtasks():
         print(f"  Type: {task.type}")
         print(f"  Direction: {task.direction}")
         print(f"  Score: {task.score}")
-        print(f"  Linear Velocity Choice: {task.nav_linear_velocity_choice}")
-        print(f"  Angular Velocity Choice: {task.nav_angular_velocity_choice}")
-        print(f"  Linear Acceleration Choice: {task.nav_linear_acceleration_choice}")
-        print(f"  Angular Acceleration Choice: {task.nav_angular_acceleration_choice}")
+        print(f"  Linear Velocity Choice: {task.linear_velocity}")
+        print(f"  Angular Velocity Choice: {task.angular_velocity}")
+        print(f"  Linear Acceleration Choice: {task.linear_acceleration}")
+        print(f"  Angular Acceleration Choice: {task.angular_acceleration}")
         
         if not task.subtask_list:
             print("  No subtasks available for this task.")
@@ -240,10 +233,11 @@ def main(args=None):
     global servers_instance
     rclpy.init(args=args)
     communication_instances_init()
-    rclpy.spin(servers_instance.get_available_tasks_service)
-    #rclpy.spin(clients_instance.get_available_tasks_client)
+    rclpy.spin(servers_instance.get_next_subtask_service)
+    #rclpy.spin(clients_instance.get_available_tasks_client) here i don't need to spib the client 
+    #because it is invoked by the get_next_subtask_service node
     clients_instance.get_available_tasks_client.destroy_node()
-    servers_instance.get_available_tasks_service.destroy_node()
+    servers_instance.get_next_subtask_service.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
