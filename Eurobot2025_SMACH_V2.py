@@ -97,7 +97,11 @@ class MASTER_SMachineStates_ten(Enum):
     MASTER_SMachine_Building_DropDown_MoveOn_en = 14
     MASTER_SMachine_Building_DropDown_WaitToReach_en = 15
     MASTER_SMachine_Building_DropDown_DestinationReached_en = 16
-    MASTER_SMachine_Building_DropDown_Finish_en = 17
+    MASTER_SMachine_Bonderole_Pose_Init_en = 17
+    MASTER_SMachine_Bonderole_Pose_MoveOn_en = 18
+    MASTER_SMachine_Bonderole_Pose_WaitToReach_en = 19
+    MASTER_SMachine_Bonderole_Pose_DestinationReached_en = 20
+    MASTER_SMachine_Building_DropDown_Finish_en = 21
 
 """
 STM32 State: These states are the states that the can returns to the state machine
@@ -195,7 +199,8 @@ class MainStateMachine(smach.StateMachine):
                                                 
             smach.StateMachine.add('BlockageDetected', BlockageDetected(),
                                 transitions={ 'Go to: MoveOn': 'MoveOn',
-                                            'Go to: BlockageDetected': 'BlockageDetected',})
+                                            'Go to: BlockageDetected': 'BlockageDetected',
+                                            'Go to: Bonderole_Pose_Init': 'Bonderole_Pose_Init',})
 
             smach.StateMachine.add('SuddenStop', SuddenStop(),
                                transitions={'Go to: WaitSuddenStop': 'WaitSuddenStop',
@@ -211,7 +216,8 @@ class MainStateMachine(smach.StateMachine):
                                transitions={'Go to: MoveOn': 'MoveOn',
                                             'Go to: ConfirmedStop': 'ConfirmedStop',
                                             'Go to: Building_PickUp_MoveOn': 'Building_PickUp_MoveOn',
-                                            'Go to: Building_DropDown_MoveOn': 'Building_DropDown_MoveOn'
+                                            'Go to: Building_DropDown_MoveOn': 'Building_DropDown_MoveOn',
+                                            'Go to: Bonderole_Pose_MoveOn': 'Bonderole_Pose_MoveOn',
                                             })                                         
                                                
             smach.StateMachine.add('DestinationReached', DestinationReached(),
@@ -219,6 +225,7 @@ class MainStateMachine(smach.StateMachine):
                                             'Go to: Finished': 'Finished',
                                             'Go to: Building_PickUp_Init': 'Building_PickUp_Init',
                                             'Go to: Building_DropDown_Init': 'Building_DropDown_Init',
+                                            'Go to: Bonderole_Pose_Init': 'Bonderole_Pose_Init',
                                             'Go to: DestinationReached': 'DestinationReached',})
                                             
             smach.StateMachine.add('Building_PickUp_Init',Building_PickUp_Init(),
@@ -259,8 +266,29 @@ class MainStateMachine(smach.StateMachine):
                                 transitions={'Go to: Building_DropDown_MoveOn': 'Building_DropDown_MoveOn',
                                             'Go to: Building_DropDown_DestinationReached': 'Building_DropDown_DestinationReached',})
 
+            smach.StateMachine.add('Bonderole_Pose_Init',Bonderole_Pose_Init(),
+                                transitions={'Go to: Bonderole_Pose_MoveOn': 'Bonderole_Pose_MoveOn',
+                                            'Go to: Bonderole_Pose_Init': 'Bonderole_Pose_Init',})
+            
+            smach.StateMachine.add('Bonderole_Pose_MoveOn',Bonderole_Pose_MoveOn(),
+                                transitions={'Go to: Bonderole_Pose_WaitToReach': 'Bonderole_Pose_WaitToReach',
+                                            'Go to: Bonderole_Pose_MoveOn': 'Bonderole_Pose_MoveOn',
+                                            'Go to: Bonderole_Pose_DestinationReached': 'Bonderole_Pose_DestinationReached',
+                                            'Go to: MoveOn': 'MoveOn',})
+            
+            smach.StateMachine.add('Bonderole_Pose_WaitToReach',Bonderole_Pose_WaitToReach(),
+                                transitions={'Go to: Bonderole_Pose_DestinationReached': 'Bonderole_Pose_DestinationReached',
+                                            'Go to: Bonderole_Pose_WaitToReach': 'Bonderole_Pose_WaitToReach',
+                                            'Go to: SuddenStop': 'SuddenStop'})
+            
+            smach.StateMachine.add('Bonderole_Pose_DestinationReached',Bonderole_Pose_DestinationReached(),
+                                transitions={'Go to: Bonderole_Pose_MoveOn': 'Bonderole_Pose_MoveOn',
+                                            'Go to: Bonderole_Pose_DestinationReached': 'Bonderole_Pose_DestinationReached',})
+
             smach.StateMachine.add('Finished', Finished(),
-                                transitions={'Go to: Finished': 'Finished'})                                                    
+                                transitions={'Go to: Finished': 'Finished'})  
+
+
 
 ############################################ EACH STATE MACHINE CLASS ###############################################
 
@@ -424,6 +452,7 @@ class DestinationReached(smach.State):
                                              'Go to: Finished',
                                              'Go to: Building_PickUp_Init',
                                              'Go to: Building_DropDown_Init',
+                                             'Go to: Bonderole_Pose_Init',
                                              'Go to: DestinationReached']) 
     
     def execute(self, userdata):
@@ -448,6 +477,9 @@ class DestinationReached(smach.State):
             elif (current_task.type == TaskType.BUILDING_DROPDOWN.value):
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_Init_en
                 return 'Go to: Building_DropDown_Init'    
+            elif (current_task.type == TaskType.BONDEROLE_POSE.value):
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_Init_en
+                return 'Go to: Bonderole_Pose_Init'
             else:
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
                 return 'Go to: MoveOn'
@@ -476,7 +508,7 @@ class Building_PickUp_Init(smach.State):
         time.sleep(0.05)
 
         if(True):
-            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_Init_en
+            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_MoveOn_en
             return 'Go to: Building_PickUp_MoveOn'
         else:
             return 'Go to: Building_PickUp_Init'
@@ -610,7 +642,7 @@ class Building_DropDown_Init(smach.State):
         time.sleep(0.05)
 
         if(True):
-            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_Init_en
+            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_MoveOn_en
             return 'Go to: Building_DropDown_MoveOn'
         else:
             return 'Go to: Building_DropDown_Init'
@@ -716,18 +748,144 @@ class Building_DropDown_DestinationReached(smach.State):
         else:
             return 'Go to: Building_DropDown_DestinationReached'    
 
+class Bonderole_Pose_Init(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Go to: Bonderole_Pose_MoveOn',
+                                             'Go to: Bonderole_Pose_Init'])
+
+    def execute(self, userdata):
+        global current_navigator_state    
+        global MASTER_CurrentNavigatorState_en
+        global MASTER_SMachineCurrentState_en
+        global communication_wait_time
+        global currently_doing_subtask
+        currently_doing_subtask = TaskType.BONDEROLE_POSE
+        #here i should initialize the mechanism if it is not ready
+        signal.signal(signal.SIGINT, exit_handler)
+        time.sleep(0.05)
+
+        if(True):
+            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_MoveOn_en
+            return 'Go to: Bonderole_Pose_MoveOn'
+        else:
+            return 'Go to: Bonderole_Pose_Init'
+
+class Bonderole_Pose_MoveOn(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Go to: Bonderole_Pose_WaitToReach',
+                                             'Go to: Bonderole_Pose_MoveOn',
+                                             'Go to: Bonderole_Pose_DestinationReached',
+                                             'Go to: MoveOn'])
+    def execute(self, userdata):
+        global current_navigator_state    
+        global MASTER_CurrentNavigatorState_en
+        global MASTER_SMachineCurrentState_en
+        global communication_wait_time
+        global current_subtask_order
+        global next_subtask_order
+        global clients_instance
+        global current_task
+        signal.signal(signal.SIGINT, exit_handler)
+        response = get_next_subtask()
+        if (response.current_subtask_order == -1):
+            clients_instance.delete_task_client.send_request(current_task.id)
+            return 'Go to: MoveOn'
         
+        elif(response.nav_target_x == 0.0 and response.nav_target_y == 0.0):
+            wait_mechanism_mouvement()
+            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_DestinationReached_en
+            next_subtask_order = current_subtask_order + 1
+            return 'Go to: Bonderole_Pose_DestinationReached'
+        
+        elif(response.nav_target_x != 0.0 or response.nav_target_y != 0.0):
+            nav_order = convert_next_subtask_to_nav_order(response)
+            send_target_order(nav_order)
+            time.sleep(communication_wait_time)  
+            if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
+                send_acknowledge_signal()
+                time.sleep(communication_wait_time)
+                return 'Go to: Bonderole_Pose_MoveOn'
+            elif (current_navigator_state == 3):
+                send_acknowledge_signal()
+                time.sleep(communication_wait_time)
+                return 'Go to: Bonderole_Pose_MoveOn'
+            elif (current_navigator_state == 2):
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_WaitToReach_en
+                MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
+                next_subtask_order = current_subtask_order + 1
+                return 'Go to: Bonderole_Pose_WaitToReach'
+            else:
+                return 'Go to: Bonderole_Pose_MoveOn'
+
+        else:
+            return 'Go to: Bonderole_Pose_MoveOn'
+
+class Bonderole_Pose_WaitToReach(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Go to: Bonderole_Pose_DestinationReached',
+                                             'Go to: Bonderole_Pose_WaitToReach',
+                                             'Go to: SuddenStop']) 
+    
+    def execute(self, userdata):
+        global current_navigator_state #returned as a msg
+        global MASTER_CurrentNavigatorState_en
+        global MASTER_SMachineCurrentState_en
+        global lidar_obstacle_detected
+        signal.signal(signal.SIGINT, exit_handler)
+        #time.sleep(3)
+        if lidar_obstacle_detected:
+            #maybe i need to sleep a bit and than check again
+            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_SuddenStop_en
+            return 'Go to: SuddenStop'
+        if(current_navigator_state == 3):
+            MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
+            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_DestinationReached_en
+            return 'Go to: Bonderole_Pose_DestinationReached'
+        else:
+            return 'Go to: Bonderole_Pose_WaitToReach'
+                
+class Bonderole_Pose_DestinationReached(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['Go to: Bonderole_Pose_MoveOn',
+                                             'Go to: Bonderole_Pose_DestinationReached'])
+    
+    def execute(self, userdata):
+        global current_navigator_state
+        global MASTER_CurrentNavigatorState_en       
+        global MASTER_SMachineCurrentState_en
+        global communication_wait_time
+        global current_subtask_order
+        global next_subtask_order
+        current_subtask_order = next_subtask_order
+        signal.signal(signal.SIGINT, exit_handler)
+        send_acknowledge_signal()
+        time.sleep(communication_wait_time)
+        if(current_navigator_state == 1):
+            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_MoveOn_en
+            
+            return 'Go to: Bonderole_Pose_MoveOn'
+        else:
+            return 'Go to: Bonderole_Pose_DestinationReached'
+
 class BlockageDetected(smach.State):
     
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: MoveOn',
-                                             'Go to: BlockageDetected']) 
+                                             'Go to: BlockageDetected',
+                                             'Go to: Bonderole_Pose_Init']) 
     
     def execute(self, userdata):
+        global next_task
+        global MASTER_SMachineCurrentState_en
         signal.signal(signal.SIGINT, exit_handler)
-        #time.sleep(1)  #()
-        if(True):
-            return 'Go to: MoveOn'
+        send_acknowledge_signal()
+        time.sleep(communication_wait_time)
+        if(current_navigator_state == 1):
+            if next_task.type == TaskType.BONDEROLE_POSE.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_Init_en
+                return 'Go to: Bonderole_Pose_Init'
+            else:    
+                return 'Go to: MoveOn'
         else:
             return 'Go to: BlockageDetected'  
 
@@ -783,7 +941,8 @@ class ConfirmedStop(smach.State):
         smach.State.__init__(self, outcomes=['Go to: MoveOn',
                                              'Go to: ConfirmedStop',
                                              'Go to: Building_PickUp_MoveOn',
-                                             'Go to: Building_DropDown_MoveOn']) 
+                                             'Go to: Building_DropDown_MoveOn',
+                                             'Go to: Bonderole_Pose_MoveOn']) 
     
     def execute(self, userdata):
         signal.signal(signal.SIGINT, exit_handler)
@@ -806,6 +965,9 @@ class ConfirmedStop(smach.State):
                 elif (currently_doing_subtask == TaskType.BUILDING_DROPDOWN):
                     MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_MoveOn_en
                     return 'Go to: Building_DropDown_MoveOn' 
+                elif (currently_doing_subtask == TaskType.BONDEROLE_POSE):
+                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_MoveOn_en
+                    return 'Go to: Bonderole_Pose_MoveOn'
                 else:
                     self.get_logger().error('Unknown subtask type when getting out of suddenstop')
                     return 'Go to: ConfirmedStop'        
