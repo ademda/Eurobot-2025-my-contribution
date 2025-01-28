@@ -21,6 +21,10 @@ Classes:
     - Building_DropDown_MoveOn: The Building_DropDown_MoveOn state class.
     - Building_DropDown_WaitToReach: The Building_DropDown_WaitToReach state class.
     - Building_DropDown_DestinationReached: The Building_DropDown_DestinationReached state class.
+    - Bonderole_Pose_Init: The Bonderole_Pose_Init state class.
+    - Bonderole_Pose_MoveOn: The Bonderole_Pose_MoveOn state class.
+    - Bonderole_Pose_WaitToReach: The Bonderole_Pose_WaitToReach state class.
+    - Bonderole_Pose_DestinationReached: The Bonderole_Pose_DestinationReached state class.
     - BlockageDetected: The BlockageDetected state class.
     - SuddenStop: The SuddenStop state class.
     - WaitSuddenStop: The WaitSuddenStop state class.
@@ -29,9 +33,9 @@ Classes:
 
     Explanation of classes structure decision:
         -from Idle class to DestinationReached class: these classes are for navigation tasks.
-        -from Building_PickUp_Init class to Building_DropDown_DestinationReached class: these 
+        -from Building_PickUp_Init class to Bonderole_Pose_DestinationReached class: these 
         classes are for building tasks: either going to intermediate tasks points or commanding mechanisms
-        -BlockageDetected class: this class is when the robot gets blocked.
+        -BlockageDetected class: this class is when the robot gets blocked.(it contains the logic to handle banderole bloackage too)
         -From SuddenStop to ConfirmedStop:these classes are when the enemy robot is near and we need to stop our robot.
         -Finished class: this class is when the robot finishes all tasks or the allowed time ends.
 """
@@ -157,7 +161,7 @@ init_position = MasterNavigationMessage(nav_target_x=1196.0,
                                         nav_linear_acceleration_choice=0,
                                         nav_angular_acceleration_choice=0,
                                         )
-#should subscribe to game launcher insted in the future to get from it the initial position
+#should subscribe to game launcher instead in the future to get from it the initial position
 ########################
 
 communication_wait_time = 0.2  #used to wait until the message is transmited to the Navigator
@@ -293,7 +297,6 @@ class MainStateMachine(smach.StateMachine):
 ############################################ EACH STATE MACHINE CLASS ###############################################
 
 class Idle(smach.State):
-    
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: Init',
                                              'Go to: Idle'])
@@ -358,7 +361,6 @@ class WaitForSignal(smach.State):
 
         
 class MoveOn(smach.State):
-    
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: WaitToReach',
                                              'Go to: MoveOn'])
@@ -393,7 +395,7 @@ class MoveOn(smach.State):
         if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
             send_acknowledge_signal()
             time.sleep(communication_wait_time)
-        elif (current_navigator_state == 3):#Added  teh wait to receive acknowledge condition
+        elif (current_navigator_state == 3):#Added  the wait to receive acknowledge condition
             send_acknowledge_signal()
             time.sleep(communication_wait_time)  # Use time.sleep in ROS 2
             return 'Go to: MoveOn'    
@@ -403,13 +405,6 @@ class MoveOn(smach.State):
             return 'Go to: WaitToReach'
         else:
             return 'Go to: MoveOn'
-        """
-        Maybe i need to add
-        elif (current_navigator_state == 3):
-            send_acknowledge_signal()
-            time.sleep(communication_wait_time)  # Use time.sleep in ROS 2
-            return 'Go to: MoveOn'
-        """
 
 
 class WaitToReach(smach.State):
@@ -464,7 +459,6 @@ class DestinationReached(smach.State):
         global next_task
         signal.signal(signal.SIGINT, exit_handler)
         send_acknowledge_signal()
-        
         current_task = next_task #i changed the location of current_task = next_task from wait to reach
         #to DestinationReached to handle the SuddenStop case in optimal way
         if(current_navigator_state == 1):
@@ -483,10 +477,7 @@ class DestinationReached(smach.State):
             else:
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
                 return 'Go to: MoveOn'
-                # i think i need to add a bonderole Pose state alone    
-                # to isolate it's blockage detected edge case
-                # here the bonderole pose has the same comportement as 
-                # Normal Nav
+
         else:
             return 'Go to: DestinationReached' 
 
@@ -539,6 +530,7 @@ class Building_PickUp_MoveOn(smach.State):
             """
             clients_instance.delete_task_client.send_request(current_task.id)
             return 'Go to: MoveOn'
+
         elif(response.nav_target_x == 0.0 and response.nav_target_y == 0.0):
             """
             here if the subtask is a mechanism command.the subtask generator node will return
@@ -549,7 +541,7 @@ class Building_PickUp_MoveOn(smach.State):
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_DestinationReached_en
             next_subtask_order = current_subtask_order + 1 
             return 'Go to: Building_PickUp_DestinationReached'
-        
+
         elif(response.nav_target_x != 0.0 or response.nav_target_y != 0.0): 
             nav_order = convert_next_subtask_to_nav_order(response)
             send_target_order(nav_order)
@@ -568,7 +560,8 @@ class Building_PickUp_MoveOn(smach.State):
                 next_subtask_order = current_subtask_order + 1 
                 return 'Go to: Building_PickUp_WaitToReach'            
             else:
-                return 'Go to: Building_PickUp_MoveOn'          
+                return 'Go to: Building_PickUp_MoveOn'  
+
         else:
             return 'Go to: Building_PickUp_MoveOn'            
     
@@ -584,7 +577,6 @@ class Building_PickUp_WaitToReach(smach.State):
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
         global lidar_obstacle_detected
-        #time.sleep(3)
         signal.signal(signal.SIGINT, exit_handler)
         if lidar_obstacle_detected:
             #maybe i need to sleep a bit and than check again
@@ -595,9 +587,9 @@ class Building_PickUp_WaitToReach(smach.State):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_DestinationReached_en
             return 'Go to: Building_PickUp_DestinationReached'
+
         else:
             return 'Go to: Building_PickUp_WaitToReach'
-    #should handle sudden stop state transition
 
     
 class Building_PickUp_DestinationReached(smach.State):
@@ -613,14 +605,13 @@ class Building_PickUp_DestinationReached(smach.State):
         global current_subtask_order
         global next_subtask_order
         current_subtask_order = next_subtask_order
-        #time.sleep(3)#CAAAAAAAAAAAAAAAAAAAUUUUUTION
         signal.signal(signal.SIGINT, exit_handler)
         send_acknowledge_signal()
         time.sleep(communication_wait_time)
         if(current_navigator_state == 1):
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_MoveOn_en
-
             return 'Go to: Building_PickUp_MoveOn'
+
         else:
             return 'Go to: Building_PickUp_DestinationReached'    
 
@@ -644,6 +635,7 @@ class Building_DropDown_Init(smach.State):
         if(True):
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_MoveOn_en
             return 'Go to: Building_DropDown_MoveOn'
+
         else:
             return 'Go to: Building_DropDown_Init'
 
@@ -668,7 +660,7 @@ class Building_DropDown_MoveOn(smach.State):
         if (response.current_subtask_order == -1):
             clients_instance.delete_task_client.send_request(current_task.id)
             return 'Go to: MoveOn'
-        
+
         elif(response.nav_target_x == 0.0 and response.nav_target_y == 0.0):
             wait_mechanism_mouvement()
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_DestinationReached_en
@@ -709,7 +701,6 @@ class Building_DropDown_WaitToReach(smach.State):
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
         global lidar_obstacle_detected
-        #time.sleep(3)
         if lidar_obstacle_detected:
             #maybe i need to sleep a bit and than check again
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_SuddenStop_en
@@ -719,9 +710,9 @@ class Building_DropDown_WaitToReach(smach.State):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_DestinationReached_en
             return 'Go to: Building_DropDown_DestinationReached'
+
         else:
             return 'Go to: Building_DropDown_WaitToReach'
-    #should handle sudden stop state transition
 
     
 class Building_DropDown_DestinationReached(smach.State):
@@ -737,16 +728,16 @@ class Building_DropDown_DestinationReached(smach.State):
         global current_subtask_order
         global next_subtask_order
         current_subtask_order = next_subtask_order
-        #time.sleep(3)#CAAAAAAAAAAAAAAAAAAAUUUUUTION
         signal.signal(signal.SIGINT, exit_handler)
         send_acknowledge_signal()
         time.sleep(communication_wait_time)
         if(current_navigator_state == 1):
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_MoveOn_en
-
             return 'Go to: Building_DropDown_MoveOn'
+
         else:
             return 'Go to: Building_DropDown_DestinationReached'    
+
 
 class Bonderole_Pose_Init(smach.State):
     def __init__(self):
@@ -769,6 +760,7 @@ class Bonderole_Pose_Init(smach.State):
             return 'Go to: Bonderole_Pose_MoveOn'
         else:
             return 'Go to: Bonderole_Pose_Init'
+
 
 class Bonderole_Pose_MoveOn(smach.State):
     def __init__(self):
@@ -832,7 +824,6 @@ class Bonderole_Pose_WaitToReach(smach.State):
         global MASTER_SMachineCurrentState_en
         global lidar_obstacle_detected
         signal.signal(signal.SIGINT, exit_handler)
-        #time.sleep(3)
         if lidar_obstacle_detected:
             #maybe i need to sleep a bit and than check again
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_SuddenStop_en
@@ -841,9 +832,11 @@ class Bonderole_Pose_WaitToReach(smach.State):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_DestinationReached_en
             return 'Go to: Bonderole_Pose_DestinationReached'
+
         else:
             return 'Go to: Bonderole_Pose_WaitToReach'
                 
+
 class Bonderole_Pose_DestinationReached(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: Bonderole_Pose_MoveOn',
@@ -862,13 +855,13 @@ class Bonderole_Pose_DestinationReached(smach.State):
         time.sleep(communication_wait_time)
         if(current_navigator_state == 1):
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_MoveOn_en
-            
             return 'Go to: Bonderole_Pose_MoveOn'
+        
         else:
             return 'Go to: Bonderole_Pose_DestinationReached'
 
+
 class BlockageDetected(smach.State):
-    
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: MoveOn',
                                              'Go to: BlockageDetected',
@@ -886,12 +879,12 @@ class BlockageDetected(smach.State):
                 return 'Go to: Bonderole_Pose_Init'
             else:    
                 return 'Go to: MoveOn'
+
         else:
             return 'Go to: BlockageDetected'  
 
 
 class SuddenStop(smach.State):
-    
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: WaitSuddenStop',
                                              'Go to: SuddenStop']) 
@@ -913,7 +906,6 @@ class SuddenStop(smach.State):
 
 
 class WaitSuddenStop(smach.State):
-    
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: ConfirmedStop',
                                              'Go to: WaitSuddenStop']) 
@@ -936,7 +928,6 @@ class WaitSuddenStop(smach.State):
 
 
 class ConfirmedStop(smach.State):
-    
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: MoveOn',
                                              'Go to: ConfirmedStop',
@@ -950,7 +941,6 @@ class ConfirmedStop(smach.State):
         global MASTER_SMachineCurrentState_en
         global MASTER_CurrentNavigatorState_en
         global currently_doing_subtask
-        #time.sleep(1)  #()
         if(True):
             send_acknowledge_signal()
             time.sleep(communication_wait_time)
@@ -970,19 +960,18 @@ class ConfirmedStop(smach.State):
                     return 'Go to: Bonderole_Pose_MoveOn'
                 else:
                     self.get_logger().error('Unknown subtask type when getting out of suddenstop')
-                    return 'Go to: ConfirmedStop'        
+                    return 'Go to: ConfirmedStop'      
+
         else :
             return 'Go to: ConfirmedStop'
 
 
 class Finished(smach.State):
-    
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: Finished']) 
     
     def execute(self, userdata):
         signal.signal(signal.SIGINT, exit_handler)
-        #time.sleep(1)  #()
         if(True):
             return 'Go to: Finished'
         
@@ -1005,24 +994,28 @@ class Publishers(Node):
 ########################################## SUBSCRIBERS CLASS ###############################################
 
 class Subscribers(Node):
-    
     def __init__(self):
         super().__init__('subscribers')
-        self.Navigator_Receive_Position_Subscriber=self.create_subscription(NavigatorNavigationMessage, 'ros_can_interface/navigator_nav',
-                                                                            self.Navigator_Receive_Position_Subscriber_callback, 10)
+        self.navigator_receive_position_subscriber = Navigator_Receive_Position_Subscriber()
         self.lidar_obstacle_detected_subscriber = LidarObstacleDetectedSubscriber()
         self.get_logger().info(f"Initialised all subscribers ")   
         
 
-    def Navigator_Receive_Position_Subscriber_callback(self ,nav_data: NavigatorNavigationMessage):
+class Navigator_Receive_Position_Subscriber(Node):
+    def __init__(self):
+        super().__init__('navigator_receive_position_subscriber')
+        self.navigator_receive_position_subscriber = self.create_subscription(NavigatorNavigationMessage, 'ros_can_interface/navigator_nav', self.navigator_receive_position_callback, 10)
+        self.get_logger().info('NavigatorReceivePositionSubscriber node has been started.')
+
+    def navigator_receive_position_callback(self ,nav_data: NavigatorNavigationMessage):
         global current_position
         global current_navigator_state
         #self.get_logger().info(f"Received: navigation data")    
         current_position = Pose2D(x=nav_data.nav_current_x, y=nav_data.nav_current_y, theta=nav_data.nav_current_angle)
         current_navigator_state = nav_data.nav_current_state
-    
-class LidarObstacleDetectedSubscriber(Node):
 
+
+class LidarObstacleDetectedSubscriber(Node):
     def __init__(self):
         super().__init__('lidar_obstacle_detected_subscriber')
         qos_profile = QoSProfile(
@@ -1039,7 +1032,6 @@ class LidarObstacleDetectedSubscriber(Node):
 
 #for testing without the stm32 returning the real robot state
 class NavigatorStateSubscriber(Node):
-
     def __init__(self):
         super().__init__('navigator_state_subscriber')
         self.nav_current_state_simulation = self.create_subscription(Int32,'simulation_navigator_state',
@@ -1058,7 +1050,6 @@ class NavigatorStateSubscriber(Node):
 ########################################## CLIENTS CLASSES ##############################################
 
 class Clients():
-
     global clients_instance
 
     def __init__(self):
@@ -1090,7 +1081,6 @@ class DeleteTaskClient(Node):
             
 
 class GetNextTaskPointClient(Node):
-
     def __init__(self):
         super().__init__('get_next_task_point_client')
         self.client = self.create_client(GetNextTaskPoint, 'get_next_task_point_service')
@@ -1158,7 +1148,6 @@ class GetNextTaskPointClient(Node):
 
 
 class GetNextSubTaskPointClient(Node):
-
     def __init__(self):
         super().__init__('get_next_subtask_client')
         self.client = self.create_client(GetNextSubTaskPoint, 'get_next_subtask')
@@ -1305,16 +1294,12 @@ def main(args=None):
 
     # Create all nodes
     current_nav_state_sub = NavigatorStateSubscriber()
-    #send_reset_signal()
-    #send_reset_signal() #to reset the stm32
-    #print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
-    # Use MultiThreadedExecutor to spin all nodes concurrently
     executor = MultiThreadedExecutor()
 
     # Add nodes to the executor
     executor.add_node(clients_instance.get_next_task_point_client)
     executor.add_node(clients_instance.get_next_subtask_client)
-    executor.add_node(subscribers_instance)
+    executor.add_node(subscribers_instance.navigator_receive_position_subscriber)
     executor.add_node(current_nav_state_sub)
     executor.add_node(subscribers_instance.lidar_obstacle_detected_subscriber)
     executor.add_node(clients_instance.delete_task_client)
@@ -1337,7 +1322,7 @@ def main(args=None):
         # Clean up and destroy all nodes when done
         clients_instance.get_next_task_point_client.destroy_node()
         clients_instance.get_next_subtask_client.destroy_node()
-        subscribers_instance.destroy_node()
+        subscribers_instance.navigator_receive_position_subscriber.destroy_node()
         current_nav_state_sub.destroy_node()
         subscribers_instance.lidar_obstacle_detected_subscriber.destroy_node()
         clients_instance.delete_task_client.destroy_node()
