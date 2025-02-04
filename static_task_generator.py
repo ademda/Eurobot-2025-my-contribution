@@ -7,14 +7,11 @@ Description:
         -Generating Obstacle positions
 
 Note:
-    -I need to add getting the available tasks based on the enemy position and what are the tasks i did
-    -I need to add getting the obstacles positions based on the enemy position and the and what tasks has been erased
-    -Need to add GetObstaclesPositionsService
-    -Need to include the handling of the enemy robot position in the update_availalable_tasks function
-    -Need to include the handling of the enemy robot position in the update_obstacles_positions function
-    /those two functions will change in the tasks[] list (i should change it's name to available_tasks[])
-    and in obstacles_position[] list 
-
+    - The available tasks are generated based on the the enemy robot position and a request from the stateamchine to remove a stask 
+    my robot completetd
+    - The obstacle positions are generated based on the enemy robot position and the current robot position
+    - if the enmy crosses a task of type pick up :i replace it wil the next pickup task in teh available tasks list and remvoe the last dropdown task in the list
+    
 Enums:
     - TaskType(Enum): Enum class for the type of the task
     - SpeedChoice(Enum): Enum class for the speed choice of the task
@@ -36,11 +33,16 @@ Classes:
     - Services: Class for the services:
         - GetAvailableTasksService: Class for the get available tasks service 
         it has connections with the nodes:subtask_generator,strategy_server
-
+        - GetMapStateService: Class for the get map state service    
+        -DeleteTaskService: Class for the delete task service
+    - Subscribers: Class for the subscribers:
+        - Enemy_Robot_Position_Subscriber: Class for the enemy robot position subscriber
+        - My_Robot_Position_Subscriber: Class for the my robot position subscriber
 Functions:
     - convert_to_subtask_list_msg(subtask_list: List['SubTask']) -> List[SubTaskMsg]: Function to convert the subtask list 
     to a list of subtask messages
     - communication_instances_init(): Function to initialize the communication instances
+
 
 """
 
@@ -189,6 +191,7 @@ class Obstacle:
         self.position = position
         self.type = obstacle_type
         
+
 class MapStateUpdater(Node):
     def __init__(self):
         super().__init__('map_state_updater')
@@ -204,18 +207,48 @@ class MapStateUpdater(Node):
         minimal_error_distance_enemy = 100 
         # here used the minimal error distance of the last year maybe needs to check it
         #I changed it a bit and i will test it
+        index = 0
+        while index < len(available_tasks):
+            task = available_tasks[index]
+            if ((enemy_position.x - minimal_error_distance_enemy <= task.position.x <= enemy_position.x + minimal_error_distance_enemy) and
+                (enemy_position.y - minimal_error_distance_enemy <= task.position.y <= enemy_position.y + minimal_error_distance_enemy) and
+                task.type == TaskType.BUILDING_PICKUP):
+                
+                self.get_logger().warn(f'Replacing task at position {task.position.x} and {task.position.y} based on ENEMY POSITION')
 
+                # Start cascading replacements from the current index
+                current_index = index
+                while current_index < len(available_tasks) - 1:
+                    # Find the next BUILDING_PICKUP task for replacement
+                    next_task_index = next((i for i in range(current_index + 1, len(available_tasks)) 
+                                            if available_tasks[i].type == TaskType.BUILDING_PICKUP), None)
+                    
+                    if next_task_index is None:
+                        self.get_logger().warn('No more BUILDING_PICKUP tasks to cascade replacements')
+                        break
 
-        for task in available_tasks:
-            if((enemy_position.x - minimal_error_distance_enemy <= task.position.x <= enemy_position.x + minimal_error_distance_enemy) and
-                (enemy_position.y - minimal_error_distance_enemy <= task.position.y <= enemy_position.y + minimal_error_distance_enemy) and 
-                task.type.value == TaskType.BUILDING_PICKUP.value):
-                self.get_logger().warn(f'Removing task at position based on ENEMY POSITIION: {task.position}')
-                next_task = self.get_next_task(task)
-                available_tasks.remove(task)
-                if next_task:
-                    self.get_logger().warn(f'Removing next task at position based on ENEMY POSITION: {next_task.position}')
-                    available_tasks.remove(next_task)       
+                    # Replace the current task with the next BUILDING_PICKUP task
+                    available_tasks[current_index] = available_tasks[next_task_index]
+                    self.get_logger().warn(f'Replaced task at index {current_index} with task at position {available_tasks[next_task_index].position}')
+
+                    # Move to the next task in the chain
+                    current_index = next_task_index
+
+                # Remove the last replaced task from the list to avoid duplication
+                last_task_index = next((i for i in range(current_index, len(available_tasks)) 
+                                        if available_tasks[i].type == TaskType.BUILDING_PICKUP), None)
+                if last_task_index:
+                    self.get_logger().warn(f'Removing final replaced task at index {last_task_index} from available_tasks')
+                    available_tasks.pop(last_task_index)
+
+                next_dropoff_index = next((i for i in range(last_task_index, len(available_tasks)) 
+                               if available_tasks[i].type == TaskType.BUILDING_DROPDOWN), None)
+    
+                if next_dropoff_index is not None:
+                    self.get_logger().warn(f'Removing next BUILDING_DROPDOWN task at index {next_dropoff_index} from available_tasks')
+                    available_tasks.pop(next_dropoff_index)    
+            index += 1
+
 
     def update_obstacles_positions(self):
         global obstacle_positions
@@ -264,28 +297,29 @@ class MapStateUpdater(Node):
 ########################## SUB_TASKS LISTS ##################
 
 subtasks_id5 = [NavSubTask(order=0, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=1000.0, y=1500.0, theta=90.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW),
-                NavSubTask(order=1, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2000.0, y=1500.0, theta=90.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW), ]
+                NavSubTask(order=1, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2000.0, y=1300.0, theta=90.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW), ]
 
 subtasks_id8 = [MechanismSubTask(order=0,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.ELEVATE_OUTSIDE_CANS),
                 NavSubTask(order=1, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=5000.0, y=5000.0, theta=30.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW),
                 ]
 
+subtask_for_test = [NavSubTask(order=0, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=1000.0, y=1500.0, theta=90.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW)]
 ####################################################### TASKS LISTS #############################################################
 #yellow
-available_tasks = [Task(id=0, position=Pose2D(x=1219.0, y=80.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),  
-    Task(id=1, position=Pose2D(x=784.0, y=426.7, theta=float(270.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=2, position=Pose2D(x=784.0, y=231.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=3, position=Pose2D(x=1080.0, y=773.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=4, position=Pose2D(x=280.0, y=1226.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=5, position=Pose2D(x=265.0, y=407.0, theta=float(180.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=6, position=Pose2D(x=1230.0, y=596.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=7, position=Pose2D(x=265.0, y=1319.0, theta=float(180.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=8, position=Pose2D(x=2703.0, y=884.0, theta=float(0.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=9, position=Pose2D(x=2750.0, y=396.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=10, position=Pose2D(x=2769.0, y=296.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=11, position=Pose2D(x=2742.0, y=1315.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=12, position=Pose2D(x=2380.0, y=873.0, theta=float(0.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),
-    Task(id=13, position=Pose2D(x=365.0, y=1780.0, theta=float(90.0)), type=TaskType.RETURN_TO_FINISH_SPOT,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtasks_id5),]
+available_tasks = [Task(id=0, position=Pose2D(x=1219.0, y=80.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),  
+    Task(id=1, position=Pose2D(x=784.0, y=426.7, theta=float(270.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=2, position=Pose2D(x=784.0, y=231.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=3, position=Pose2D(x=1080.0, y=773.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=4, position=Pose2D(x=1226.0, y=280.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=5, position=Pose2D(x=265.0, y=407.0, theta=float(180.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=6, position=Pose2D(x=1230.0, y=596.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=7, position=Pose2D(x=265.0, y=1319.0, theta=float(180.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=8, position=Pose2D(x=2703.0, y=884.0, theta=float(0.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=9, position=Pose2D(x=2750.0, y=396.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=10, position=Pose2D(x=2769.0, y=296.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=11, position=Pose2D(x=2742.0, y=1315.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=12, position=Pose2D(x=2380.0, y=873.0, theta=float(0.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),
+    Task(id=13, position=Pose2D(x=365.0, y=1780.0, theta=float(90.0)), type=TaskType.RETURN_TO_FINISH_SPOT,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=subtask_for_test),]
 
 common_tasks = [
     Task(id=0, position=Pose2D(x=1234.0, y=123.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=[]),  
@@ -338,8 +372,9 @@ obstacle_positions = [
 class Services:
     def __init__(self):
         self.get_map_state_service = GetMapStateService()
-        #self.delete_task_service = DeleteTaskService()
-        
+        self.delete_task_service = DeleteTaskService()
+
+
 class DeleteTaskService(Node):
     def __init__(self):
         super().__init__('delete_task_service')
@@ -352,10 +387,10 @@ class DeleteTaskService(Node):
         for task in available_tasks:
             if task.id == request.id:
                 available_tasks.remove(task)
-                self.get_logger().error(f'Removed task with id {request.data}')
+                self.get_logger().error(f'Removed task with id {request.id}')
                 break
         return response
-        
+                
 
 class GetMapStateService(Node):
     def __init__(self):
@@ -418,10 +453,12 @@ class GetMapStateService(Node):
         self.get_logger().info(f'Sent task message: {task_msg_dict}')
         return response
 
+
 class Subscribers:
     def __init__(self):
         self.enemy_robot_position_subscriber = Enemy_Robot_Position_Subscriber()
         self.my_robot_position_subscriber = My_Robot_Position_Subscriber()
+
 
 class Enemy_Robot_Position_Subscriber(Node):
     def __init__(self):
@@ -508,7 +545,7 @@ def main(args=None):
     executor.add_node(subscribers_instance.enemy_robot_position_subscriber)
     executor.add_node(subscribers_instance.my_robot_position_subscriber)
     executor.add_node(map_state_updater)
-    #executor.add_node(servers_instance.delete_task_service)
+    executor.add_node(servers_instance.delete_task_service)
     try:
         executor.spin()
     except KeyboardInterrupt:
@@ -519,7 +556,7 @@ def main(args=None):
         subscribers_instance.enemy_robot_position_subscriber.destroy_node()
         subscribers_instance.my_robot_position_subscriber.destroy_node()
         map_state_updater.destroy_node()
-        #servers_instance.delete_task_service.destroy_node()
+        servers_instance.delete_task_service.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':
