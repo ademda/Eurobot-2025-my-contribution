@@ -1161,7 +1161,7 @@ class GetNextSubTaskPointClient(Node):
         request = GetNextSubTaskPoint.Request()  # Create a request object
         request.current_subtask_order = current_subtask_order
         request.current_task_id = current_task.id
-        self.get_logger().info('Sending request for available tasks...')
+        self.get_logger().info('Sending request for available subtasks...')
         self.future = self.client.call_async(request)
         rclpy.spin_until_future_complete(self, self.future)  # Wait until the service call is completed
 
