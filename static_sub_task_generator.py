@@ -75,7 +75,7 @@ class GetNextSubTaskService(Node):
         global clients_instance
         clients_instance.get_available_tasks_client.send_request()
         self.get_logger().info('Got a request About NextSubtask... Now sending a response')    
-        print_all_subtasks()
+        #print_all_subtasks()
         current_task = get_task_from_id(request.current_task_id)
         print(request.current_subtask_order)
         print(request.current_task_id)
