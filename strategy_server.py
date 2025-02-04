@@ -8,20 +8,15 @@ Description:
             or BONDEROLE_POSE or RETURN_TO_FINISH_SPOT
 
 Note: 
-    - right now, the task decision is task based on tasks_list[]            
+    - right now, the task decision is task based on tasks_list[], the strategy node will get the next task to   
+    to do and the next task isn't generated staticly...but based on :
+        -if the enemy robot did it or not          
     - should include generating path to task for the robot to follow based on rrt algorithm
-    -should include get enemy position(subscriber) and map obstacles(client)
-    - should include demi static strategy where the next task isn't based on tasks_list[] but
     on: 
         - avaliable_tasks got from static_task_generator node
         - enemy_position
         - my position
-        ///for the near future i can decide a fixed sequence of what the robot should do in order
-        and i remove the task that the enemy robot near (the crossing of enemy robot to that task 
-        will be handled by thet static_task_generator node),i should handle the switches in the order of tasks
-        based on what the enemy robot has done:if he did building pickup,should go to buildign pickup
-        not to building drop down because i will be empty handed, so either the list wil change or i will
-        not choose by sequence 
+        - map obstacles
 
 Classes:
     - Strategy: includes the main logic of the strategy server(tasks decision and functions to get enemy position and map obstacles)         
@@ -39,7 +34,6 @@ Functions:
     - get_next_task: returns the next task to be executed based on the id of the current task
     - convert_task_to_response_msg: converts a TaskMsg object to a GetNextTaskPoint.Response object for the state machine node
     - communication_instances_init: initializes the communication instances
-
 """
 
 import rclpy
