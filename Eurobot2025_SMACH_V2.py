@@ -152,7 +152,7 @@ current_navigator_state = None
 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorIdle_en
 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Idle_en
 
-init_position = MasterNavigationMessage(nav_target_x=1196.0,
+"""init_position = MasterNavigationMessage(nav_target_x=1196.0,
                                         nav_target_y=226.0,
                                         nav_target_angle=90.0,
                                         nav_is_forward=True,
@@ -160,7 +160,7 @@ init_position = MasterNavigationMessage(nav_target_x=1196.0,
                                         nav_angular_velocity_choice=0,
                                         nav_linear_acceleration_choice=0,
                                         nav_angular_acceleration_choice=0,
-                                        )
+                                        )"""
 #should subscribe to game launcher instead in the future to get from it the initial position
 ########################
 
@@ -328,8 +328,25 @@ class Init(smach.State):
         global current_navigator_state #returned as a msg
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
-        global init_position
         global communication_wait_time
+        nav_target_x = float(input("init_x:"))
+        nav_target_y = float(input("init_y:"))
+        nav_target_angle = float(input("init_angle:"))
+        nav_is_forward = bool(int(input("nav_is_forward (1 for True, 0 for False):")))
+        nav_linear_velocity_choice = int(input("nav_linear_velocity_choice:"))
+        nav_angular_velocity_choice = int(input("nav_angular_velocity_choice:"))
+        nav_linear_acceleration_choice = int(input("nav_linear_acceleration_choice:"))
+        nav_angular_acceleration_choice = int(input("nav_angular_acceleration_choice:"))
+        init_position = MasterNavigationMessage(
+            nav_target_x=nav_target_x,
+            nav_target_y=nav_target_y,
+            nav_target_angle=nav_target_angle,
+            nav_is_forward=nav_is_forward,
+            nav_linear_velocity_choice=nav_linear_velocity_choice,
+            nav_angular_velocity_choice=nav_angular_velocity_choice,
+            nav_linear_acceleration_choice=nav_linear_acceleration_choice,
+            nav_angular_acceleration_choice=nav_angular_acceleration_choice,
+        )
         signal.signal(signal.SIGINT, exit_handler)
         send_target_order(init_position)
         time.sleep(communication_wait_time)
