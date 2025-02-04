@@ -136,6 +136,7 @@ servers_instance = None
 current_position = None #Pose2D format
 current_task = None
 next_task = None
+init_position = []
 current_subtask_order = 0
 next_subtask_order = 0
 currently_doing_subtask = None #The differnce between current task and currently_doing_subtask is that even if current task is 
@@ -329,24 +330,7 @@ class Init(smach.State):
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
         global communication_wait_time
-        nav_target_x = float(input("init_x:"))
-        nav_target_y = float(input("init_y:"))
-        nav_target_angle = float(input("init_angle:"))
-        nav_is_forward = bool(int(input("nav_is_forward (1 for True, 0 for False):")))
-        nav_linear_velocity_choice = int(input("nav_linear_velocity_choice:"))
-        nav_angular_velocity_choice = int(input("nav_angular_velocity_choice:"))
-        nav_linear_acceleration_choice = int(input("nav_linear_acceleration_choice:"))
-        nav_angular_acceleration_choice = int(input("nav_angular_acceleration_choice:"))
-        init_position = MasterNavigationMessage(
-            nav_target_x=nav_target_x,
-            nav_target_y=nav_target_y,
-            nav_target_angle=nav_target_angle,
-            nav_is_forward=nav_is_forward,
-            nav_linear_velocity_choice=nav_linear_velocity_choice,
-            nav_angular_velocity_choice=nav_angular_velocity_choice,
-            nav_linear_acceleration_choice=nav_linear_acceleration_choice,
-            nav_angular_acceleration_choice=nav_angular_acceleration_choice,
-        )
+        global init_position
         signal.signal(signal.SIGINT, exit_handler)
         send_target_order(init_position)
         time.sleep(communication_wait_time)
@@ -1265,6 +1249,27 @@ def get_next_subtask():
     """
     return response 
 
+def choose_init_position():
+        global init_position
+        nav_target_x = float(input("init_x:"))
+        nav_target_y = float(input("init_y:"))
+        nav_target_angle = float(input("init_angle:"))
+        nav_is_forward = bool(int(input("nav_is_forward (1 for True, 0 for False):")))
+        nav_linear_velocity_choice = int(input("nav_linear_velocity_choice:"))
+        nav_angular_velocity_choice = int(input("nav_angular_velocity_choice:"))
+        nav_linear_acceleration_choice = int(input("nav_linear_acceleration_choice:"))
+        nav_angular_acceleration_choice = int(input("nav_angular_acceleration_choice:"))
+        init_position = MasterNavigationMessage(
+            nav_target_x=nav_target_x,
+            nav_target_y=nav_target_y,
+            nav_target_angle=nav_target_angle,
+            nav_is_forward=nav_is_forward,
+            nav_linear_velocity_choice=nav_linear_velocity_choice,
+            nav_angular_velocity_choice=nav_angular_velocity_choice,
+            nav_linear_acceleration_choice=nav_linear_acceleration_choice,
+            nav_angular_acceleration_choice=nav_angular_acceleration_choice,
+        )
+
 ########################################## COMMUNICATION FUNCTIONS ############################################
 
 def get_next_task_point():
@@ -1308,7 +1313,7 @@ def main(args=None):
     # Initialize ROS 2
     rclpy.init(args=args)
     communication_instances_init()
-
+    choose_init_position()
     # Create all nodes
     current_nav_state_sub = NavigatorStateSubscriber()
     executor = MultiThreadedExecutor()
