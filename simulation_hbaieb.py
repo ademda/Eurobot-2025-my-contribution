@@ -11,7 +11,7 @@ SLIDER_COLOR = (100, 100, 250)
 SLIDER_BAR_COLOR = (180, 180, 180)
 TOGGLE_ON_COLOR = (0, 255, 0)  # Green color for ON state
 TOGGLE_OFF_COLOR = (255, 0, 0)  # Red color for OFF state
-
+WHEEL_CENTER_DISTANCE = 30  # Distance from the center of the wheels to the center of the robot
 # Global variable to store path points
 path_points = []
 
@@ -55,7 +55,7 @@ new_robot_width = int(robot_original_width * scale_factor)
 new_robot_height = int(robot_original_height * scale_factor)
 
 # Scale the robot image
-scaled_robot_image = pygame.transform.scale(robot_image, (240*mm_to_px_factor,360*mm_to_px_factor))
+scaled_robot_image = pygame.transform.scale(robot_image, (200*mm_to_px_factor,377*mm_to_px_factor))
 path_points = []
 
 # Initialize Pygame
@@ -293,6 +293,10 @@ class Robot:
             mouse_x, mouse_y = event.pos
             self.update_position(mouse_x, mouse_y)
             robot_x_mm, robot_y_mm=get_mm_coordinates(mouse_x,mouse_y)
+            robot_x_mm= robot_x_mm - WHEEL_CENTER_DISTANCE*math.cos(math.radians(angle_wheel.angle))
+            robot_y_mm = robot_y_mm - WHEEL_CENTER_DISTANCE*math.sin(math.radians(angle_wheel.angle))
+            print(robot_x_mm)
+            print(robot_y_mm)
             target_x_box.set_text(str(round(robot_x_mm,3)))
             target_y_box.set_text(str(round(robot_y_mm,3)))
 
@@ -482,6 +486,11 @@ def handle_events(event):
     if event.type == pygame.MOUSEBUTTONDOWN:
         if map_x < event.pos[0] < map_x+new_map_width and map_y< event.pos[1]< map_y+new_map_height:  # Check if click is inside the map area
             x_mm_coordinates,y_mm_coordinates=get_mm_coordinates(event.pos[0],event.pos[1])
+            #print(angle_wheel.angle)
+            x_mm_coordinates= x_mm_coordinates - WHEEL_CENTER_DISTANCE*math.cos(math.radians(angle_wheel.angle))
+            y_mm_coordinates = y_mm_coordinates - WHEEL_CENTER_DISTANCE*math.sin(math.radians(angle_wheel.angle))
+            #print(x_mm_coordinates)
+            #print(y_mm_coordinates)
             target_x_box.set_text(str(round(x_mm_coordinates,3))) # Set X coordinate
             target_y_box.set_text(str(round(y_mm_coordinates,3))) # Set Y coordinate
 
