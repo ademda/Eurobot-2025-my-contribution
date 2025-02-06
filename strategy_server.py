@@ -268,6 +268,8 @@ def main(args=None):
 
     # Clean up
     strategy.destroy_node()
+    servers_instance.get_next_task_point_service.destroy_node()
+    clients_instance.get_map_state_client.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
