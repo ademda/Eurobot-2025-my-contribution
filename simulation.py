@@ -19,7 +19,7 @@ WINDOW_LENGTH_PX = 1080  # Window length (longer side) in pixels
 WINDOW_WIDTH_PX = 720   # Window width (shorter side) in pixels
 SCALE_X = WINDOW_LENGTH_PX / MAP_LENGTH_MM  # Scale factor for X
 SCALE_Y = WINDOW_WIDTH_PX / MAP_WIDTH_MM  # Scale factor for Y
-
+WHEEL_CENTER_DISTANCE = 30 
 # Robot dimensions in pixels
 ROBOT_LENGTH_PX = int(ROBOT_LENGTH_MM * SCALE_X)
 ROBOT_WIDTH_PX = int(ROBOT_WIDTH_MM * SCALE_Y)
@@ -98,6 +98,8 @@ class RobotSimulation(Node):
             self.robot_y = msg.nav_current_y
             self.robot_angle = msg.nav_current_angle  # Target orientation
             self.get_logger().info(f"Teleported to: X={self.robot_x}, Y={self.robot_y}, Angle={self.robot_angle}")
+            self.robot_x = self.robot_x - WHEEL_CENTER_DISTANCE*math.cos(math.radians(self.robot_angle))
+            self.robot_y = self.robot_y - WHEEL_CENTER_DISTANCE*math.sin(math.radians(self.robot_angle))
 
     def stop_callback(self, msg):
         """Callback function to stop the robot."""
