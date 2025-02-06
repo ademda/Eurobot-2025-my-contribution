@@ -112,7 +112,8 @@ class MachanismSubTaskType(Enum):
     ELEVATE_PLANKS_ABOVE = 6
     HOLD_UPPER_PLANK = 7
     RELEASE_UPPER_PLANK = 8
-
+    BONDEROLE_SERVO_REALEASE = 9
+    BONDEROLE_SERVO_HOLD = 10
 
 class ObstacleType(Enum):
     BUILDING = 0

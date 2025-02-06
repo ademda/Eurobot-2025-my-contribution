@@ -23,6 +23,7 @@ Functions:
 
 """
 import rclpy
+from mecanisme.mechanism_1 import FirstMechanism
 from rclpy.node import Node
 from enum import Enum
 from geometry_msgs.msg import Pose2D
@@ -32,7 +33,7 @@ from ros_custom_messages.srv import GetMapState, GetNextSubTaskPoint
 from ros_custom_messages.msg import TaskMsg, SubTaskMsg, ObstacleMsg
 from strategy.static_task_generator import Task, SubTaskType, MachanismSubTaskType, MechanismSubTask, NavSubTask, TaskType, Direction, TaskTypeScore, SpeedChoice
 ################################## GLOBAL VARIABLES #############################
-
+mechanism_instance = None
 servers_instance = None
 clients_instance = None
 available_tasks = []
@@ -163,7 +164,22 @@ def command_mechanism(next_subtask):
     instead of executing a delay in the smach node
     or i can call the mechanism functions in the samch node itself(i don't recommend it)
     """
-    return True
+    global mechanism_instance
+    if (next_subtask.mechanism_subtask_type == MachanismSubTaskType.GRAB_CANS):
+        mechanism_instance.hold_cans()
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.DROP_CANS):
+        mechanism_instance.place_first_cans()
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.ELEVATE_PLANKS_ABOVE):
+        mechanism_instance.lift_planks()
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.LOWER_PLANKS):
+        mechanism_instance.place_first_plank_and_pick_last_cans()
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_REALEASE):
+        mechanism_instance.release_bonderole_servo()
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_HOLD):
+        mechanism_instance.hold_bonderole_servo()            
+    else:
+        print("Error: Mechanism subtask type not recognized")
+
 
 ################# COMMUNICATION INIT FUNCTION ###############
 
@@ -231,8 +247,10 @@ def convert_subtask_to_nav_message(subtask: SubTaskMsg, response: GetNextSubTask
 def main(args=None):
     global clients_instance
     global servers_instance
+    global mechanism_instance
     rclpy.init(args=args)
     communication_instances_init()
+    mechanism_instance = FirstMechanism()
     rclpy.spin(servers_instance.get_next_subtask_service)
     #rclpy.spin(clients_instance.get_available_tasks_client) here i don't need to spib the client 
     #because it is invoked by the get_next_subtask_service node
