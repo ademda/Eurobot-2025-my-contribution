@@ -171,6 +171,8 @@ def command_mechanism(next_subtask):
         mechanism_instance.place_first_cans()
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.ELEVATE_PLANKS_ABOVE):
         mechanism_instance.lift_planks()
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.ELEVATE_PLANKS_ALOT):
+        mechanism_instance.lift_planks_alot()    
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.LOWER_PLANKS):
         mechanism_instance.place_first_plank_and_pick_last_cans()
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_REALEASE):
