@@ -423,6 +423,7 @@ subtasks_id16 = [
     NavSubTask(order=4, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=831.0, y=1385.0, theta=90.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW),
 ]
 
+###########################################################
 
 subtask_for_test = [NavSubTask(order=0, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=1000.0, y=1500.0, theta=90.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW)]
 ####################################################### TASKS LISTS #############################################################
