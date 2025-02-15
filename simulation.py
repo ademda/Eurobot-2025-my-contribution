@@ -56,8 +56,8 @@ class RobotSimulation(Node):
         self.obstacles = []
 
         # Robot's position and orientation (initialized to 0)
-        self.robot_x = 0.0  # X position in millimeters
-        self.robot_y = 0.0  # Y position in millimeters
+        self.robot_x = 0.0  # X position in millimeters NEEEEEEEEEED TO RETIRN  IT TO 0
+        self.robot_y = 0.0  # Y position in millimeters  NEEEEEEEEEED TO RETIRN  IT TO 0
         self.robot_angle = 0.0  # Orientation angle in degrees
 
         # Flag to check if stop signal is received
