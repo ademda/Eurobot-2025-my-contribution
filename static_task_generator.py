@@ -322,7 +322,7 @@ subtasks_id1 = [
 subtasks_id2 = [
     NavSubTask(order=0, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=784.0, y=260.5, theta=270.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW),
     MechanismSubTask(order=1,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.DROP_CANS),
-    NavSubTask(order=2, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=784.0,y=330, theta=270.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW), 
+    NavSubTask(order=2, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=784.0,y=330.0, theta=270.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW), 
 ]
 
 subtasks_id3 = [
@@ -378,7 +378,7 @@ subtasks_id9 = [
 ]
 
 subtasks_id10 = [
-    NavSubTask(order=0, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2769.0, y=260, theta=270.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW),
+    NavSubTask(order=0, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2769.0, y=260.0, theta=270.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW),
     MechanismSubTask(order=1,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.DROP_CANS),
     MechanismSubTask(order=2,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.LOWER_PLANKS),
     NavSubTask(order=3, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2769.0, y=330.0, theta=270.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW),
@@ -443,7 +443,7 @@ available_tasks = [
     Task(id=13, position=Pose2D(x=365.0, y=1780.0, theta=float(90.0)), type=TaskType.RETURN_TO_FINISH_SPOT,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 0,angular_acceleration = 0, subtask_list=[]),
 ]
 
-yellow_private_task = Task(id=16, position=Pose2D(x=831.0, y=1385.0, theta=float(90.0), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, subtask_list=subtasks_id16)) 
+yellow_private_task = Task(id=16, position=Pose2D(x=831.0, y=1385.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, subtask_list=subtasks_id16)
 
 bonus_task1 = Task(id=14, position=Pose2D(x=2216.0, y=521.7, theta=float(270.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, subtask_list=subtasks_id14)
 bonus_task2 = Task(id=15, position=Pose2D(x=1920.0, y=678.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, subtask_list=subtasks_id15)
@@ -546,6 +546,8 @@ class GetMapStateService(Node):
             task_msg.subtask_list = convert_to_subtask_list_msg(task.subtask_list)
             # Append the Task message to the response
             response.tasks.append(task_msg)
+            # Print task id
+            self.get_logger().info(f'Task ID: {task.id}')
         response.obstacle_positions = []
         for obstacle in obstacle_positions:
             obstacle_msg = ObstacleMsg()    
@@ -559,9 +561,9 @@ class GetMapStateService(Node):
         task_msg_dict = {
             'id': task_msg.id,
             'position': {
-                'x': position.x,
-                'y': position.y,
-                'theta': position.theta
+            'x': position.x,
+            'y': position.y,
+            'theta': position.theta
             },
             'type': task_msg.type,
             'direction': task_msg.direction,
@@ -570,11 +572,10 @@ class GetMapStateService(Node):
             'nav_angular_velocity_choice': task_msg.nav_angular_velocity_choice,
             'nav_linear_acceleration_choice': task_msg.nav_linear_acceleration_choice,
             'nav_angular_acceleration_choice': task_msg.nav_angular_acceleration_choice,
-            'subtask_list': task_msg.subtask_list
         }
             
         # Log the task message as a dictionary
-        self.get_logger().info(f'Sent task message: {task_msg_dict}')
+        print("############################################################")
         return response
 
 
