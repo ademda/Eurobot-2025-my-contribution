@@ -280,6 +280,8 @@ def main(args=None):
     mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS
     mechanism_instance.hold_cans()
     mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS
+    mechanism_instance.hold_bonderole_servo()
+    mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD
     ######################### ATTENTION #############################
     #I need to deploy the forklift and grab cans only after the match starts...
     #or after the bonderoe pose starts
