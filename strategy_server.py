@@ -238,6 +238,7 @@ def convert_task_to_response_msg(task: TaskMsg, response:GetNextTaskPoint.Respon
     response.nav_angular_velocity_choice = task.nav_angular_velocity_choice
     response.nav_linear_acceleration_choice = task.nav_linear_acceleration_choice
     response.nav_angular_acceleration_choice = task.nav_angular_acceleration_choice
+    response.nav_is_with_platforms = task.nav_is_with_platforms
     return response
 
 ################## MAIN FUNCTION ######################
