@@ -152,7 +152,7 @@ current_navigator_state = None
 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorIdle_en
 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Idle_en
 
-"""init_position = MasterNavigationMessage(nav_target_x=1200.0,
+init_position = MasterNavigationMessage(nav_target_x=1200.0,
                                         nav_target_y=275.5,
                                         nav_target_angle=90.0,
                                         nav_is_forward=True,
@@ -161,9 +161,9 @@ MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Idle_
                                         nav_linear_acceleration_choice=0,
                                         nav_angular_acceleration_choice=0,
                                         nav_is_with_platforms = False,
-                                        )#yellow init position"""
+                                        )#yellow init position
 
-init_position = MasterNavigationMessage(nav_target_x=1800.0,
+"""init_position = MasterNavigationMessage(nav_target_x=1800.0,
                                         nav_target_y=195.5,
                                         nav_target_angle=90.0,
                                         nav_is_forward=True,
@@ -172,7 +172,7 @@ init_position = MasterNavigationMessage(nav_target_x=1800.0,
                                         nav_linear_acceleration_choice=0,
                                         nav_angular_acceleration_choice=0,
                                         nav_is_with_platforms = False,
-                                        )#blue init_position
+                                        )#blue init_position"""
 
 #should subscribe to game launcher instead in the future to get from it the initial position
 ########################
@@ -990,8 +990,9 @@ class ConfirmedStop(smach.State):
         global MASTER_SMachineCurrentState_en
         global MASTER_CurrentNavigatorState_en
         global currently_doing_subtask
+        global lidar_obstacle_detected
         time.sleep(0.05)
-        if(True):
+        if(not lidar_obstacle_detected):
             send_acknowledge_signal()
             time.sleep(communication_wait_time)
             time.sleep(0.5)
