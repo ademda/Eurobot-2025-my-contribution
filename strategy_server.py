@@ -44,7 +44,12 @@ from ros_custom_messages.srv import GetMapState
 from enum import Enum
 from ros_custom_messages.msg import TaskMsg, ObstacleMsg
 from ros_custom_messages.srv import GetNextTaskPoint
-from strategy.static_task_generator import Task, SpeedChoice
+from strategy.static_task_generator import Task, SpeedChoice, TaskType
+from path_planning.pathplanner import PathPlanner
+from geometry_msgs.msg import Pose2D, Point
+from ros_custom_messages.msg import NavigatorNavigationMessage
+from rclpy.qos import QoSProfile, ReliabilityPolicy
+
 ############# GLOBAL VARIABLES ################
 
 publishers_instance = None
@@ -52,10 +57,25 @@ subscribers_instance = None
 clients_instance = None
 servers_instance = None
 strategy_instance = None
+path_planner_instance = None
+robot_color = "yellow" #i will add a publisher later on
+current_position = None #Pose2D format
+current_task = None
+enemy_position = None
 
 obstacle_positions = []
 available_tasks = []
 #tasks_list=[2, 5, 8, 9] #based on task id 2, 5, 8, 9
+
+blue_prohibited_zones = [
+    [0, 1550, 3000, 2000],   
+    [0, 650, 460, 1100],     
+    [0, 0, 450, 150]  ,
+    [1560, 0, 2000, 450]  ,
+    [2005, 0, 2450, 150]  ,			    
+]
+
+yellow_prohibited_zones = []
 
 ################# CLASSES ##################
 
@@ -65,18 +85,26 @@ class Strategy(Node):
     def __init__(self):
         super().__init__('strategy_server')
 
-    def get_path_from_rrt(self):    
-        print('got path from rrt')
-        # NEED TO COMPLETE AFTER V0
-
-    def get_enemy_position(self):
-        print("Got enemy position")    
-        # NEED TO COMPLETE AFTER V0
-
-    def get_map_obstacles(self):
-        print("got map obstacles")    
+    def initialize_pathplanner(self):
+        global obstacle_positions
+        global path_planner_instance
+        global yellow_prohibited_zones
+        global robot_color
+        if robot_color == "blue":
+            path_planner_instance = PathPlanner(yellow_prohibited_zones)
+        elif robot_color == "yellow":
+            path_planner_instance = PathPlanner(blue_prohibited_zones)
+        else:
+            raise ValueError("Invalid robot color provided.")        
+        
 
 ########## COMMUNICATION CLASSES ###########
+
+
+class Subscribers():
+    def __init__(self):
+        self.strategy_navigator_receive_position_subscriber = Navigator_Receive_Position_Subscriber()
+        self.strategy_enemy_robot_position_subscriber = Enemy_Robot_Position_Subscriber()
 
 class Services():
     def __init__(self):
@@ -87,6 +115,35 @@ class Clients():
     def __init__(self):
         self.get_map_state_client = GetMapStateClient()
 
+
+class Navigator_Receive_Position_Subscriber(Node):
+    def __init__(self):
+        super().__init__('strategy_navigator_receive_position_subscriber')
+        self.navigator_receive_position_subscriber = self.create_subscription(NavigatorNavigationMessage, 'ros_can_interface/navigator_nav', self.navigator_receive_position_callback, 10)
+        self.get_logger().info('StrategyNavigatorReceivePositionSubscriber node has been started.')
+
+    def navigator_receive_position_callback(self ,nav_data: NavigatorNavigationMessage):
+        global current_position
+        global current_navigator_state
+        #self.get_logger().info(f"Received: navigation data")    
+        current_position = Pose2D(x=nav_data.nav_current_x, y=nav_data.nav_current_y, theta=nav_data.nav_current_angle)
+        current_navigator_state = nav_data.nav_current_state
+
+class Enemy_Robot_Position_Subscriber(Node):
+    def __init__(self):
+        super().__init__('strategy_enemy_robot_position_subscriber')
+        qos_profile = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            depth=10
+        )
+        self.sub = self.create_subscription(Point, 'Enemy_Robot_Position', self.enemy_position_callback, qos_profile) 
+        self.get_logger().warn('Created enemy_robot_position_subscriber')
+
+    def enemy_position_callback(self, msg):
+        global enemy_position
+        enemy_position.x = msg.x
+        enemy_position.y = msg.y
+        enemy_position.theta = msg.z
 
 class GetMapStateClient(Node):
     def __init__(self):
@@ -164,41 +221,87 @@ class GetNextTaskPointService(Node):
         global strategy_instance
         global clients_instance
         global obstacle_positions
+        global current_position
+        global enemy_position
         self.get_logger().info('Got a request about next task... Now sending a response')
         get_map_state()
         #next_task = get_next_task(request.task_id) #heer i changed to returning the next
         #available task in teh available_tasks list
         response = GetNextTaskPoint.Response()
-        # Convert the task to the response message format
         next_task = available_tasks[0]
-        response = convert_task_to_response_msg(next_task, response)
-        print(next_task.id)
-        print(next_task.type)
-        print("Response details:")
-        print(f"task_id: {response.task_id}")
-        print(f"nav_target_x: {response.nav_target_x}")
-        print(f"nav_target_y: {response.nav_target_y}")
-        print(f"nav_target_angle: {response.nav_target_angle}")
-        print(f"task_type: {response.task_type}")
-        print(f"nav_is_forward: {response.nav_is_forward}")
-        print(f"score: {response.score}")
-        print(f"nav_linear_velocity_choice: {response.nav_linear_velocity_choice}")
-        print(f"nav_angular_velocity_choice: {response.nav_angular_velocity_choice}")
-        print(f"nav_linear_acceleration_choice: {response.nav_linear_acceleration_choice}")
-        print(f"nav_angular_acceleration_choice: {response.nav_angular_acceleration_choice}")
-        # Return the response (no need to reassign the response variable)
-        return response
+
+        next_task_position = Pose2D(x=next_task.position.x, y=next_task.position.y, theta=next_task.position.theta)
+        enemy_position = Pose2D(x=enemy_position.x, y=enemy_position.y, theta=enemy_position.theta)
+        #here the static task generator node should return the right obstacle positions based on the robot color  
+        rrt_obstacles = convert_obstacles_to_rrt_argument(obstacle_positions)
+        path = get_path_from_rrt(current_position, next_task_position, rrt_obstacles, enemy_position)
+        intermediate_point = path[0]
+
+        if (intermediate_point.x == -1 and intermediate_point.y == -1 and intermediate_point.theta == 0):
+            path = get_path_from_rrt(current_position, next_task_position, rrt_obstacles, enemy_position)
+            intermediate_point = path[0]
+            if (intermediate_point.x == -1 and intermediate_point.y == -1 and intermediate_point.theta == 0):
+                print("IMPOSSIBLE TO REACH THE TARGET")
+                response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
+                return response
+                ########HEEEEEEEERE I NEED TO EDGE CASE THIS ONE....I STILL DIDN'T FIGURE OUT HOW TO DO IT
+                ####### i think i will be adding a request to change the task to go to if the next task is bui
+                ####### building dropdown (to the static task generator)
+            else:
+                response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
+                # Convert the task to the response message format
+                print(next_task.id)
+                print(next_task.type)
+                print("Response details:")
+                print(f"task_id: {response.task_id}")
+                print(f"nav_target_x: {response.nav_target_x}")
+                print(f"nav_target_y: {response.nav_target_y}")
+                print(f"nav_target_angle: {response.nav_target_angle}")
+                print(f"task_type: {response.task_type}")
+                print(f"nav_is_forward: {response.nav_is_forward}")
+                print(f"score: {response.score}")
+                print(f"nav_linear_velocity_choice: {response.nav_linear_velocity_choice}")
+                print(f"nav_angular_velocity_choice: {response.nav_angular_velocity_choice}")
+                print(f"nav_linear_acceleration_choice: {response.nav_linear_acceleration_choice}")
+                print(f"nav_angular_acceleration_choice: {response.nav_angular_acceleration_choice}")
+                # Return the response (no need to reassign the response variable)
+                return response  
+        else:
+            response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
+            # Convert the task to the response message format
+            print(next_task.id)
+            print(next_task.type)
+            print("Response details:")
+            print(f"task_id: {response.task_id}")
+            print(f"nav_target_x: {response.nav_target_x}")
+            print(f"nav_target_y: {response.nav_target_y}")
+            print(f"nav_target_angle: {response.nav_target_angle}")
+            print(f"task_type: {response.task_type}")
+            print(f"nav_is_forward: {response.nav_is_forward}")
+            print(f"score: {response.score}")
+            print(f"nav_linear_velocity_choice: {response.nav_linear_velocity_choice}")
+            print(f"nav_angular_velocity_choice: {response.nav_angular_velocity_choice}")
+            print(f"nav_linear_acceleration_choice: {response.nav_linear_acceleration_choice}")
+            print(f"nav_angular_acceleration_choice: {response.nav_angular_acceleration_choice}")
+            # Return the response (no need to reassign the response variable)
+            return response
     
 ################### COMMUNICATION INIT FUNCTION #############
 
 def communication_instances_init():
     global clients_instance
     global servers_instance
+    global subscribers_instance
     clients_instance = Clients()
     servers_instance = Services()
+    subscribers_instance = Subscribers()
     
 ################## UTILITY FUNCTIONS ###################
 
+def get_path_from_rrt(start_pos, goal_pos, obstacles_position, enemy_robot_position):    
+    global path_planner_instance
+    path = path_planner_instance.get_path_rrt(start_pos, goal_pos, obstacles_position, enemy_robot_position)
+    return path
 def get_map_state():
         global clients_instance
         clients_instance.get_map_state_client.send_request()
@@ -223,43 +326,70 @@ def get_next_task(task_id): #I no longer use this function
     next_task = get_task_from_id(tasks_list[next_task_index])
     return next_task
 
-def convert_task_to_response_msg(task: TaskMsg, response:GetNextTaskPoint.Response):
+def convert_intermediate_point_to_response_msg(intermediate_point: Pose2D, response:GetNextTaskPoint.Response, next_task: TaskMsg):
     #if task is None:
     #   raise ValueError("The task provided is None.")
     response = GetNextTaskPoint.Response()
-    response.task_id = task.id
-    response.nav_target_x = task.position.x
-    response.nav_target_y = task.position.y
-    response.nav_target_angle = task.position.theta
-    response.task_type = task.type
-    response.nav_is_forward = bool(task.direction)
-    response.score = task.score
-    response.nav_linear_velocity_choice = task.nav_linear_velocity_choice
-    response.nav_angular_velocity_choice = task.nav_angular_velocity_choice
-    response.nav_linear_acceleration_choice = task.nav_linear_acceleration_choice
-    response.nav_angular_acceleration_choice = task.nav_angular_acceleration_choice
-    response.nav_is_with_platforms = task.nav_is_with_platforms
-    return response
+    if intemediate_point_is_task :
+        response.task_id = next_task.id
+        response.nav_target_x = next_task.position.x
+        response.nav_target_y = next_task.position.y
+        response.nav_target_angle = next_task.position.theta
+        response.task_type = next_task.type
+        response.nav_is_forward = bool(next_task.direction)
+        response.score = next_task.score
+        response.nav_linear_velocity_choice = next_task.nav_linear_velocity_choice
+        response.nav_angular_velocity_choice = next_task.nav_angular_velocity_choice
+        response.nav_linear_acceleration_choice = next_task.nav_linear_acceleration_choice
+        response.nav_angular_acceleration_choice = next_task.nav_angular_acceleration_choice
+        response.nav_is_with_platforms = next_task.nav_is_with_platforms
+        return response
+    else:
+        response.task_id = next_task.id
+        response.nav_target_x = intermediate_point.x
+        response.nav_target_y = intermediate_point.y
+        response.nav_target_angle = intermediate_point.theta
+        response.task_type = TaskType.NORMAL_NAV.value
+        response.nav_is_forward = True
+        response.score = next_task.score
+        response.nav_linear_velocity_choice = next_task.nav_linear_velocity_choice
+        response.nav_angular_velocity_choice = next_task.nav_angular_velocity_choice
+        response.nav_linear_acceleration_choice = next_task.nav_linear_acceleration_choice
+        response.nav_angular_acceleration_choice = next_task.nav_angular_acceleration_choice
+        response.nav_is_with_platforms = next_task.nav_is_with_platforms
+        return response
+
+def convert_obstacles_to_rrt_argument(obstacles):
+    obstacles_position = []
+    for obstacle in obstacles:
+        obstacles_position.append(Pose2D(x=obstacle.x, y=obstacle.y, theta=0.0))
+    return obstacles_position        
+
+def intemediate_point_is_task(intermediate_point: Pose2D, next_task: TaskMsg):
+    if intermediate_point.x == next_task.position.x and intermediate_point.y == next_task.position.y:
+        return True
+    return False
 
 ################## MAIN FUNCTION ######################
 
 def main(args=None):
     global strategy_instance
     global clients_instance
-    print("AAAAAAAAAAAAAAAAAA")
+    global subscribers_instance
     rclpy.init(args=args)
     communication_instances_init()
-
     # Initialize the global strategy instance
-    strategy = Strategy()
-    
+    strategy_instance = Strategy()
+    strategy_instance.initialize_pathplanner()
     # Create a MultiThreadedExecutor to manage both nodes concurrently
     executor = MultiThreadedExecutor()
 
     # Add both nodes to the executor
     executor.add_node(servers_instance.get_next_task_point_service)
     executor.add_node(clients_instance.get_map_state_client)
-    executor.add_node(strategy)
+    executor.add_node(subscribers_instance.strategy_navigator_receive_position_subscriber)
+    executor.add_node(subscribers_instance.strategy_enemy_robot_position_subscriber)
+    executor.add_node(strategy_instance)
 
     try:
         # Spin all nodes in the executor (it will handle them in separate threads)
@@ -268,9 +398,11 @@ def main(args=None):
         pass  # Handle graceful shutdown on keyboard interrupt
 
     # Clean up
-    strategy.destroy_node()
+    strategy_instance.destroy_node()
     servers_instance.get_next_task_point_service.destroy_node()
     clients_instance.get_map_state_client.destroy_node()
+    subscribers_instance.strategy_enemy_robot_position_subscriber.destroy_node()
+    subscribers_instance.strategy_navigator_receive_position_subscriber.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
