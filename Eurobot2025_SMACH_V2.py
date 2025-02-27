@@ -405,6 +405,9 @@ class MoveOn(smach.State):
         print(f"nav_linear_acceleration_choice: {next_task.linear_acceleration}")
         print(f"nav_angular_acceleration_choice: {next_task.angular_acceleration}")
         nav_order = convert_next_task_to_nav_order(next_task)
+        if(nav_order.nav_target_x == -1):
+            print("Impossible Point")
+            return 'Go to: MoveOn'
         send_target_order(nav_order)
         time.sleep(communication_wait_time)
         if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
@@ -570,21 +573,21 @@ class Building_PickUp_MoveOn(smach.State):
                 send_acknowledge_signal()
                 time.sleep(communication_wait_time)
                 return 'Go to: Building_PickUp_MoveOn'
-            elif (current_navigator_state == 3):#Added  teh wait to receive acknowledge condition
+            elif (current_navigator_state == 3):
                 send_acknowledge_signal()
-                time.sleep(communication_wait_time)  # Use time.sleep in ROS 2
-                return 'Go to: Building_PickUp_MoveOn'    
+                time.sleep(communication_wait_time)
+                return 'Go to: Building_PickUp_MoveOn'
             elif (current_navigator_state == 2):
-                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_WaitToReach_en
                 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_WaitToReach_en
                 next_subtask_order = current_subtask_order + 1 
-                return 'Go to: Building_PickUp_WaitToReach'            
+                return 'Go to: Building_PickUp_WaitToReach'
             else:
-                return 'Go to: Building_PickUp_MoveOn'  
+                return 'Go to: Building_PickUp_MoveOn'
 
         else:
             return 'Go to: Building_PickUp_MoveOn'            
-    
+
 
 class Building_PickUp_WaitToReach(smach.State):
     def __init__(self):
@@ -702,13 +705,13 @@ class Building_DropDown_MoveOn(smach.State):
                 send_acknowledge_signal()
                 time.sleep(communication_wait_time)
                 return 'Go to: Building_DropDown_MoveOn'
-            elif (current_navigator_state == 3):#Added  teh wait to receive acknowledge condition
+            elif (current_navigator_state == 3):
                 send_acknowledge_signal()
-                time.sleep(communication_wait_time)  # Use time.sleep in ROS 2
-                return 'Go to: Building_DropDown_MoveOn'    
+                time.sleep(communication_wait_time)
+                return 'Go to: Building_DropDown_MoveOn'
             elif (current_navigator_state == 2):
-                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_WaitToReach_en
                 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_WaitToReach_en
                 next_subtask_order = current_subtask_order + 1 
                 return 'Go to: Building_DropDown_WaitToReach'
             else:
@@ -816,7 +819,7 @@ class Bonderole_Pose_MoveOn(smach.State):
         elif(response.nav_target_x == 0.0 and response.nav_target_y == 0.0):
             #wait_mechanism_mouvement()
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_DestinationReached_en
-            next_subtask_order = current_subtask_order + 1
+            next_subtask_order = current_subtask_order + 1 
             return 'Go to: Bonderole_Pose_DestinationReached'
         
         elif(response.nav_target_x != 0.0 or response.nav_target_y != 0.0):
@@ -832,15 +835,15 @@ class Bonderole_Pose_MoveOn(smach.State):
                 time.sleep(communication_wait_time)
                 return 'Go to: Bonderole_Pose_MoveOn'
             elif (current_navigator_state == 2):
-                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_WaitToReach_en
                 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
-                next_subtask_order = current_subtask_order + 1
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_WaitToReach_en
+                next_subtask_order = current_subtask_order + 1 
                 return 'Go to: Bonderole_Pose_WaitToReach'
             else:
                 return 'Go to: Bonderole_Pose_MoveOn'
-
+                    
         else:
-            return 'Go to: Bonderole_Pose_MoveOn'
+            return 'Go to: Bonderole_Pose_MoveOn'            
 
 class Bonderole_Pose_WaitToReach(smach.State):
     def __init__(self):
@@ -898,7 +901,7 @@ class BlockageDetected(smach.State):
         smach.State.__init__(self, outcomes=['Go to: MoveOn',
                                              'Go to: BlockageDetected',
                                              'Go to: Bonderole_Pose_Init',
-                                             'Go to: Building_PickUp_DestinationReached',]) 
+                                             'Go to: Building_PickUp_DestinationReached']) 
 
     def execute(self, userdata):
         global next_task
@@ -916,21 +919,17 @@ class BlockageDetected(smach.State):
         print(current_task)
         print("############################################")
         if(current_navigator_state == 1):
-            if next_task.type == TaskType.BONDEROLE_POSE.value:
-                current_task = next_task
-                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_Init_en
-                return 'Go to: Bonderole_Pose_Init'
-            
-            if (current_task.type == TaskType.BUILDING_PICKUP.value and currently_doing_subtask == TaskType.BUILDING_PICKUP.value):
-                MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
+            if currently_doing_subtask == TaskType.NORMAL_NAV.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
+                return 'Go to: MoveOn'
+            elif currently_doing_subtask == TaskType.BUILDING_PICKUP.value:
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_DestinationReached_en
                 return 'Go to: Building_PickUp_DestinationReached'
-
-            else:    
-                return 'Go to: MoveOn'
-
+            elif currently_doing_subtask == TaskType.BONDEROLE_POSE.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_Init_en
+                return 'Go to: Bonderole_Pose_Init'
         else:
-            return 'Go to: BlockageDetected'  
+            return 'Go to: BlockageDetected'
 
 
 class SuddenStop(smach.State):
@@ -945,11 +944,9 @@ class SuddenStop(smach.State):
         global current_navigator_state
         send_stop_signal()
         time.sleep(0.5) #added it so we don't loop too fast  
-        if(current_navigator_state == 6 or current_navigator_state == 7):#NEEEEEEEED TO UNDERSTAND THOSE TWO
-            MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorConfirmedStop_en
+        if(current_navigator_state == 6 or current_navigator_state == 7):
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_ConfirmedStop_en
             return 'Go to: WaitSuddenStop'
-        
         else:
             return 'Go to: SuddenStop'
 
@@ -968,10 +965,8 @@ class WaitSuddenStop(smach.State):
 
         # Check if the current navigator state is confirmed stop
         if current_navigator_state == 7:
-            MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorConfirmedStop_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_ConfirmedStop_en
             return 'Go to: ConfirmedStop'
-        
         else:
             return 'Go to: WaitSuddenStop'
 
@@ -993,28 +988,19 @@ class ConfirmedStop(smach.State):
         global lidar_obstacle_detected
         time.sleep(0.05)
         if(not lidar_obstacle_detected):
-            send_acknowledge_signal()
-            time.sleep(communication_wait_time)
-            time.sleep(0.5)
-            if (current_navigator_state == 1):
-                MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorReady_en    
-                if (currently_doing_subtask == TaskType.NORMAL_NAV.value):
-                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
-                    return 'Go to: MoveOn'
-                elif (currently_doing_subtask == TaskType.BUILDING_PICKUP.value):
-                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_MoveOn_en
-                    return 'Go to: Building_PickUp_MoveOn'
-                elif (currently_doing_subtask == TaskType.BUILDING_DROPDOWN.value):
-                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_MoveOn_en
-                    return 'Go to: Building_DropDown_MoveOn' 
-                elif (currently_doing_subtask == TaskType.BONDEROLE_POSE.value):
-                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_MoveOn_en
-                    return 'Go to: Bonderole_Pose_MoveOn'
-                else:
-                    self.get_logger().error('Unknown subtask type when getting out of suddenstop')
-                    return 'Go to: ConfirmedStop'      
-
-        else :
+            if currently_doing_subtask == TaskType.NORMAL_NAV.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
+                return 'Go to: MoveOn'
+            elif currently_doing_subtask == TaskType.BUILDING_PICKUP.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_MoveOn_en
+                return 'Go to: Building_PickUp_MoveOn'
+            elif currently_doing_subtask == TaskType.BUILDING_DROPDOWN.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_MoveOn_en
+                return 'Go to: Building_DropDown_MoveOn'
+            elif currently_doing_subtask == TaskType.BONDEROLE_POSE.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_MoveOn_en
+                return 'Go to: Bonderole_Pose_MoveOn'
+        else:
             return 'Go to: ConfirmedStop'
 
 
@@ -1253,7 +1239,7 @@ def convert_next_subtask_to_nav_order(current_subtask_msg: GetNextSubTaskPoint.R
     nav_order.nav_angular_velocity_choice = current_subtask_msg.nav_angular_velocity_choice
     nav_order.nav_linear_acceleration_choice = current_subtask_msg.nav_linear_acceleration_choice
     nav_order.nav_angular_acceleration_choice = current_subtask_msg.nav_angular_acceleration_choice
-    nav_order.nav_is_with_platforms = current_subtask_msg._nav_is_with_platforms
+    nav_order.nav_is_with_platforms = current_subtask_msg.nav_is_with_platforms
     return nav_order
 
 def wait_mechanism_mouvement():
