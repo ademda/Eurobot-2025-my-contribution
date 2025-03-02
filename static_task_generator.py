@@ -275,7 +275,7 @@ class MapStateUpdater(Node):
         global current_position
         global enemy_position
         global available_tasks
-        minimal_error_distance = 75
+        minimal_error_distance = 150
         minimal_error_distance_enemy = 100
         max_distance_between_obstacles = 450
         for obstacle in obstacle_positions:
@@ -285,15 +285,10 @@ class MapStateUpdater(Node):
                 
                 print('Removing obstacle at position based on MY POSITION: ', obstacle.position.x)
                 print('Removing obstacle at position based on MY POSITION: ', obstacle.position.y)
-                for i in range(len(obstacle_positions) - 1, -1, -1):
-                    another_obstacle = obstacle_positions[i]
-                    if (calculate_distance(obstacle, another_obstacle) <= max_distance_between_obstacles and 
-                        another_obstacle.type.value == ObstacleType.BUILDING.value and 
-                        another_obstacle != obstacle):
-                        print("another obstacle", another_obstacle.position.x)
-                        print("obstacle", obstacle.position.y)
-                        obstacle_positions.pop(i)
-                        i = i-1
+                for another_obstacle in obstacle_positions:
+                    if (calculate_distance(obstacle, another_obstacle) <= max_distance_between_obstacles and another_obstacle.type.value == ObstacleType.BUILDING.value and another_obstacle!=obstacle):
+                        self.get_logger().warn(f'Removing obstacle at position based on MY POSITION: {another_obstacle.position}')
+                        obstacle_positions.remove(another_obstacle)
                 obstacle_positions.remove(obstacle)
 
         for obstacle in obstacle_positions:

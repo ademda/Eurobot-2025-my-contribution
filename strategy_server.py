@@ -61,7 +61,7 @@ path_planner_instance = None
 robot_color = "yellow" #i will add a publisher later on
 current_position = None #Pose2D format
 current_task = None
-enemy_position = None
+enemy_position = Pose2D(x=3000.0,y=2000.0,theta=0.0)
 
 obstacle_positions = []
 available_tasks = []
@@ -170,8 +170,8 @@ class GetMapStateClient(Node):
                 response = self.future.result()  # Get the response from the service
                 available_tasks = response.tasks
                 obstacle_positions = response.obstacle_positions
-                self.get_logger().warn(f'Received tasks: {response.tasks}')
-                self.get_logger().warn(f'Received obstacle positions: {response.obstacle_positions}')
+                #self.get_logger().warn(f'Received tasks: {response.tasks}')
+                #self.get_logger().warn(f'Received obstacle positions: {response.obstacle_positions}')
 
                 #self.process_response(available_tasks, obstacle_positions) removed it for easier debugging
             except Exception as e:
@@ -229,21 +229,26 @@ class GetNextTaskPointService(Node):
         #available task in teh available_tasks list
         response = GetNextTaskPoint.Response()
         next_task = available_tasks[0]
-
+        print("ii m here noooooooooooooooow")
         next_task_position = Pose2D(x=next_task.position.x, y=next_task.position.y, theta=next_task.position.theta)
         enemy_position = Pose2D(x=enemy_position.x, y=enemy_position.y, theta=enemy_position.theta)
         #here the static task generator node should return the right obstacle positions based on the robot color  
         rrt_obstacles = convert_obstacles_to_rrt_argument(obstacle_positions)
         path = get_path_from_rrt(current_position, next_task_position, rrt_obstacles, enemy_position)
-        intermediate_point = path[0]
-
-        if (intermediate_point.x == -1 and intermediate_point.y == -1 and intermediate_point.theta == 0):
+        if len(path) >=2:
+            intermediate_point = path[1]
+            print("intermediate_point", intermediate_point)
+        rrt_failure_flag = path[0]
+        if (rrt_failure_flag.x == -1 and rrt_failure_flag.y == -1 and rrt_failure_flag.theta == 0):
             path = get_path_from_rrt(current_position, next_task_position, rrt_obstacles, enemy_position)
-            intermediate_point = path[0]
-            if (intermediate_point.x == -1 and intermediate_point.y == -1 and intermediate_point.theta == 0):
+            if len(path) >=2:
+                intermediate_point = path[1]
+            rrt_failure_flag = path[0]
+            if (rrt_failure_flag.x == -1 and rrt_failure_flag.y == -1 and rrt_failure_flag.theta == 0):
                 print("IMPOSSIBLE TO REACH THE TARGET")
-                response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
+                response = convert_intermediate_point_to_response_msg(rrt_failure_flag, response, next_task)
                 return response
+                #here i should return the flag not the intermediate point i got an error
                 ########HEEEEEEEERE I NEED TO EDGE CASE THIS ONE....I STILL DIDN'T FIGURE OUT HOW TO DO IT
                 ####### i think i will be adding a request to change the task to go to if the next task is bui
                 ####### building dropdown (to the static task generator)
@@ -267,6 +272,7 @@ class GetNextTaskPointService(Node):
                 # Return the response (no need to reassign the response variable)
                 return response  
         else:
+            #print("intermediate_point heeeeeeere", intermediate_point)
             response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
             # Convert the task to the response message format
             print(next_task.id)
@@ -330,7 +336,7 @@ def convert_intermediate_point_to_response_msg(intermediate_point: Pose2D, respo
     #if task is None:
     #   raise ValueError("The task provided is None.")
     response = GetNextTaskPoint.Response()
-    if intemediate_point_is_task :
+    if intemediate_point_is_task(intermediate_point, next_task) :
         response.task_id = next_task.id
         response.nav_target_x = next_task.position.x
         response.nav_target_y = next_task.position.y

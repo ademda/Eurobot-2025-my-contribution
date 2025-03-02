@@ -23,7 +23,6 @@ Functions:
 
 """
 import rclpy
-from mecanisme.mechanism_1 import FirstMechanism
 from rclpy.node import Node
 from enum import Enum
 from geometry_msgs.msg import Pose2D
@@ -33,18 +32,10 @@ from ros_custom_messages.srv import GetMapState, GetNextSubTaskPoint
 from ros_custom_messages.msg import TaskMsg, SubTaskMsg, ObstacleMsg
 from strategy.static_task_generator import Task, SubTaskType, MachanismSubTaskType, MechanismSubTask, NavSubTask, TaskType, Direction, TaskTypeScore, SpeedChoice
 ################################## GLOBAL VARIABLES #############################
-mechanism_instance = None
+
 servers_instance = None
 clients_instance = None
 available_tasks = []
-
-###################################### MECHANSIM STATE CLASS #############################
-class MechanismState():
-    def __init__(self):
-        self.fork_lift_state = None
-        self.bonderole_servo_state = None
-        self.cans_state = None
-
 ###################################### SERVERS CLASSES ###################################
 
 class Services:
@@ -82,8 +73,7 @@ class GetNextSubTaskService(Node):
     def handle_get_next_subtask(self, request, response):
         global available_tasks
         global clients_instance
-        #clients_instance.get_available_tasks_client.send_request()#removed this because 
-        #i don't need to get the list everytime i do a subtask
+        clients_instance.get_available_tasks_client.send_request()
         self.get_logger().info('Got a request About NextSubtask... Now sending a response')    
         #print_all_subtasks()
         current_task = get_task_from_id(request.current_task_id)
@@ -142,7 +132,7 @@ class GetMapStateClient(Node):
                 response = self.future.result()  # Get the response from the service
                 available_tasks = response.tasks
                 self.get_logger().warn(f'Received tasks: {response.tasks}')
-                #self.process_response(available_tasks)
+                self.process_response(available_tasks)
             except Exception as e:
                 self.get_logger().error(f'Service call failed: {e}')
 
@@ -173,33 +163,7 @@ def command_mechanism(next_subtask):
     instead of executing a delay in the smach node
     or i can call the mechanism functions in the samch node itself(i don't recommend it)
     """
-    global mechanism_instance
-    global mechanism_state
-    if (next_subtask.mechanism_subtask_type == MachanismSubTaskType.GRAB_CANS.value and mechanism_state.cans_state != MachanismSubTaskType.GRAB_CANS.value):
-        print("NOOOOOOW DOIIIIING hold cans subtask")
-        mechanism_instance.hold_cans()
-        mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS.value
-    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.DROP_CANS.value and mechanism_state.cans_state != MachanismSubTaskType.DROP_CANS.value):
-        mechanism_instance.place_first_cans()
-        mechanism_state.cans_state = MachanismSubTaskType.DROP_CANS.value
-    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.ELEVATE_PLANKS_ABOVE.value and mechanism_state.fork_lift_state != MachanismSubTaskType.ELEVATE_PLANKS_ABOVE.value):
-        mechanism_instance.lift_planks()
-        mechanism_state.fork_lift_state = MachanismSubTaskType.ELEVATE_PLANKS_ABOVE.value
-    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.ELEVATE_PLANKS_ALOT.value and mechanism_state.fork_lift_state != MachanismSubTaskType.ELEVATE_PLANKS_ALOT.value):
-        mechanism_instance.lift_planks_alot()
-        mechanism_state.fork_lift_state = MachanismSubTaskType.ELEVATE_PLANKS_ALOT.value    
-    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.LOWER_PLANKS.value and mechanism_state.fork_lift_state != MachanismSubTaskType.LOWER_PLANKS.value):
-        mechanism_instance.place_first_plank_and_pick_last_cans()
-        mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS.value
-    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value and mechanism_state.bonderole_servo_state != MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value):
-        mechanism_instance.release_bonderole_servo()
-        mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value
-    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value and mechanism_state.bonderole_servo_state != MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value):
-        mechanism_instance.hold_bonderole_servo()        
-        mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value    
-    else:
-        print("Error: Mechanism subtask type not recognized")
-
+    return True
 
 ################# COMMUNICATION INIT FUNCTION ###############
 
@@ -243,7 +207,6 @@ def print_all_subtasks():
                 print(f"      Angular Velocity Choice: {subtask.nav_angular_velocity_choice}")
                 print(f"      Linear Acceleration Choice: {subtask.nav_linear_acceleration_choice}")
                 print(f"      Angular Acceleration Choice: {subtask.nav_angular_acceleration_choice}")
-                print(f"      Is With Platforms: {'True' if subtask.nav_is_with_platforms else 'False'}")
         print("-" * 50)  # Separator for clarity
 
 def get_task_from_id(task_id):
@@ -263,29 +226,13 @@ def convert_subtask_to_nav_message(subtask: SubTaskMsg, response: GetNextSubTask
         response.nav_angular_velocity_choice = subtask.nav_angular_velocity_choice
         response.nav_linear_acceleration_choice = subtask.nav_linear_acceleration_choice
         response.nav_linear_acceleration_choice = subtask.nav_angular_acceleration_choice
-        response.nav_is_with_platforms = subtask.nav_is_with_platforms
         return response
 
 def main(args=None):
     global clients_instance
     global servers_instance
-    global mechanism_instance
-    global mechanism_state
     rclpy.init(args=args)
     communication_instances_init()
-    clients_instance.get_available_tasks_client.send_request()
-    mechanism_state = MechanismState()
-    mechanism_instance = FirstMechanism()
-    mechanism_instance.deploy_forklift()
-    mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS
-    mechanism_instance.hold_cans()
-    mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS
-    mechanism_instance.hold_bonderole_servo()
-    mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD
-    ######################### ATTENTION #############################
-    #I need to deploy the forklift and grab cans only after the match starts...
-    #or after the bonderoe pose starts
-    #################################################################
     rclpy.spin(servers_instance.get_next_subtask_service)
     #rclpy.spin(clients_instance.get_available_tasks_client) here i don't need to spib the client 
     #because it is invoked by the get_next_subtask_service node
