@@ -152,7 +152,7 @@ current_navigator_state = None
 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorIdle_en
 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Idle_en
 
-"""init_position = MasterNavigationMessage(nav_target_x=1200.0,
+init_position = MasterNavigationMessage(nav_target_x=1200.0,
                                         nav_target_y=275.5,
                                         nav_target_angle=90.0,
                                         nav_is_forward=True,
@@ -161,9 +161,9 @@ MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Idle_
                                         nav_linear_acceleration_choice=0,
                                         nav_angular_acceleration_choice=0,
                                         nav_is_with_platforms = False,
-                                        )#yellow init position"""
+                                        )#yellow init position
 
-init_position = MasterNavigationMessage(nav_target_x=1800.0,
+"""init_position = MasterNavigationMessage(nav_target_x=1800.0,
                                         nav_target_y=195.5,
                                         nav_target_angle=90.0,
                                         nav_is_forward=True,
@@ -172,7 +172,7 @@ init_position = MasterNavigationMessage(nav_target_x=1800.0,
                                         nav_linear_acceleration_choice=0,
                                         nav_angular_acceleration_choice=0,
                                         nav_is_with_platforms = False,
-                                        )#blue init_position
+                                        )#blue init_position"""
 
 #should subscribe to game launcher instead in the future to get from it the initial position
 ########################
@@ -990,30 +990,22 @@ class ConfirmedStop(smach.State):
         global MASTER_SMachineCurrentState_en
         global MASTER_CurrentNavigatorState_en
         global currently_doing_subtask
+        global lidar_obstacle_detected
         time.sleep(0.05)
-        if(True):
-            send_acknowledge_signal()
-            time.sleep(communication_wait_time)
-            time.sleep(0.5)
-            if (current_navigator_state == 1):
-                MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorReady_en    
-                if (currently_doing_subtask == TaskType.NORMAL_NAV.value):
-                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
-                    return 'Go to: MoveOn'
-                elif (currently_doing_subtask == TaskType.BUILDING_PICKUP.value):
-                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_MoveOn_en
-                    return 'Go to: Building_PickUp_MoveOn'
-                elif (currently_doing_subtask == TaskType.BUILDING_DROPDOWN.value):
-                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_MoveOn_en
-                    return 'Go to: Building_DropDown_MoveOn' 
-                elif (currently_doing_subtask == TaskType.BONDEROLE_POSE.value):
-                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_MoveOn_en
-                    return 'Go to: Bonderole_Pose_MoveOn'
-                else:
-                    self.get_logger().error('Unknown subtask type when getting out of suddenstop')
-                    return 'Go to: ConfirmedStop'      
-
-        else :
+        if(not lidar_obstacle_detected):
+            if currently_doing_subtask == TaskType.NORMAL_NAV.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
+                return 'Go to: MoveOn'
+            elif currently_doing_subtask == TaskType.BUILDING_PICKUP.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_MoveOn_en
+                return 'Go to: Building_PickUp_MoveOn'
+            elif currently_doing_subtask == TaskType.BUILDING_DROPDOWN.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_MoveOn_en
+                return 'Go to: Building_DropDown_MoveOn'
+            elif currently_doing_subtask == TaskType.BONDEROLE_POSE.value:
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_MoveOn_en
+                return 'Go to: Bonderole_Pose_MoveOn'
+        else:
             return 'Go to: ConfirmedStop'
 
 
@@ -1252,7 +1244,7 @@ def convert_next_subtask_to_nav_order(current_subtask_msg: GetNextSubTaskPoint.R
     nav_order.nav_angular_velocity_choice = current_subtask_msg.nav_angular_velocity_choice
     nav_order.nav_linear_acceleration_choice = current_subtask_msg.nav_linear_acceleration_choice
     nav_order.nav_angular_acceleration_choice = current_subtask_msg.nav_angular_acceleration_choice
-    nav_order.nav_is_with_platforms = current_subtask_msg._nav_is_with_platforms
+    nav_order.nav_is_with_platforms = current_subtask_msg.nav_is_with_platforms
     return nav_order
 
 def wait_mechanism_mouvement():
