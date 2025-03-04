@@ -45,7 +45,6 @@ from enum import Enum
 from ros_custom_messages.msg import TaskMsg, ObstacleMsg
 from ros_custom_messages.srv import GetNextTaskPoint
 from strategy.static_task_generator import Task, SpeedChoice, TaskType
-from path_planning.pathplanner import PathPlanner
 from geometry_msgs.msg import Pose2D, Point
 from ros_custom_messages.msg import NavigatorNavigationMessage
 from rclpy.qos import QoSProfile, ReliabilityPolicy
