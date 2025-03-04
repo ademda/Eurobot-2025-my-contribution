@@ -136,12 +136,14 @@ servers_instance = None
 current_position = None #Pose2D format
 current_task = None
 next_task = None
+current_time = 0
 current_subtask_order = 0
 next_subtask_order = 0
 currently_doing_subtask = None #The differnce between current task and currently_doing_subtask is that even if current task is 
 # decided even before entering the statemachine of the task itself...but the currently_doing_subtask is decided when we actually
 # enter the statemachine of the task itself (this helps us distinguish when to go to moveon or task moveon after going to a suddenstop)
 lidar_obstacle_detected = False
+robot_stuck_wait_to_reach = False
 """current_task = Task(id=-100,position=Pose2D(x=100.0,y=100.0,theta=90),
                     type=TaskType.NORMAL_NAV,direction=Direction.BACKWARD,
                     score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW,
@@ -431,6 +433,8 @@ class WaitToReach(smach.State):
                                              'Go to: WaitToReach'])
     
     def execute(self, userdata):
+        global current_time
+        global robot_stuck_wait_to_reach
         global current_navigator_state #returned as a msg
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
@@ -441,7 +445,7 @@ class WaitToReach(smach.State):
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         # Maybe i need to add time.sleep(0.05)
-        if lidar_obstacle_detected:
+        if lidar_obstacle_detected or robot_stuck_wait_to_reach:
             #maybe i need to sleep a bit and than check again
             print('STTTTTTTTTTTTTTTTTTTOOOOOOOOOOOOOOOOOOOP')
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_SuddenStop_en
@@ -597,10 +601,11 @@ class Building_PickUp_WaitToReach(smach.State):
         global current_navigator_state #returned as a msg
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
+        global robot_stuck_wait_to_reach
         global lidar_obstacle_detected
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
-        if lidar_obstacle_detected:
+        if lidar_obstacle_detected or robot_stuck_wait_to_reach:
             #maybe i need to sleep a bit and than check again
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_SuddenStop_en
             return 'Go to: SuddenStop'
@@ -728,8 +733,9 @@ class Building_DropDown_WaitToReach(smach.State):
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
         global lidar_obstacle_detected
+        global robot_stuck_wait_to_reach
         time.sleep(0.05)
-        if lidar_obstacle_detected:
+        if lidar_obstacle_detected or robot_stuck_wait_to_reach:
             #maybe i need to sleep a bit and than check again
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_SuddenStop_en
             return 'Go to: SuddenStop'
@@ -853,9 +859,11 @@ class Bonderole_Pose_WaitToReach(smach.State):
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
         global lidar_obstacle_detected
+        global robot_stuck_wait_to_reach
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
-        if lidar_obstacle_detected:
+        #here i need to check of blockage maybe there is confustion 
+        if lidar_obstacle_detected or robot_stuck_wait_to_reach:
             #maybe i need to sleep a bit and than check again
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_SuddenStop_en
             return 'Go to: SuddenStop'
@@ -1216,8 +1224,64 @@ class GetNextSubTaskPointClient(Node):
                 self.get_logger().error(f"Service call failed: {e}")
                 return None      
 
+########################################## TIMER CLASS ############################################
+class TimeCounter(Node):
+    def __init__(self):
+        super().__init__('time_counter')
+        self.create_timer(1, self.time_callback)
+        self.get_logger().info('Time Counter Node has been started.')
+
+    def time_callback(self):
+        global current_time
+        current_time += 1
+
+class Robot_Stuck_Checker_WaitToReach(Node):
+    def __init__(self):
+        super().__init__('robot_stuck_checker_wait_to_reach')
+        self.create_timer(0.1, self.robot_stuck_checker_wait_to_reach_callback)
+        self.first_time_entering_state = False
+        self.local_time = 0
+        self.initial_test_x = None
+        self.initial_test_y = None
+        self.initial_test_theta = None
+        self.get_logger().info('Robot Stuck Checker WaitToReach Node has been started.')
+
+    def robot_stuck_checker_wait_to_reach_callback(self):
+        global MASTER_SMachineCurrentState_en
+        global robot_stuck_wait_to_reach
+        global current_time
+        if (MASTER_SMachineCurrentState_en == MASTER_SMachineStates_ten.MASTER_SMachine_WaitToReach_en
+        or MASTER_SMachineCurrentState_en == MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_WaitToReach_en
+        or MASTER_SMachineCurrentState_en == MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_WaitToReach_en
+        or MASTER_SMachineCurrentState_en == MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_WaitToReach_en):
+            
+            if not self.first_time_entering_state:
+                self.local_time = current_time
+                self.initial_test_x = current_position.x 
+                self.initial_test_y = current_position.y
+                self.initial_test_theta = current_position.theta
+                self.first_time_entering_state = True
+            else :     
+                if (current_time - self.local_time) >= 3:
+                    if (abs(current_position.x-self.initial_test_x) < 0.3 and abs(current_position.y-self.initial_test_y) < 0.3 and abs(current_position.theta-self.initial_test_theta) < 0.3):
+                        robot_stuck_wait_to_reach = True
+                        self.get_logger().warn('Robot is stuck!!!!!!!!!!!!!!!!!!!!!!!!')
+                    else:
+                        robot_stuck_wait_to_reach = False
+                    
+                    self.local_time = current_time
+                    self.initial_test_x = current_position.x 
+                    self.initial_test_y = current_position.y
+                    self.initial_test_theta = current_position.theta    
+                else:
+                    robot_stuck_wait_to_reach = False
+        else:
+            robot_stuck_wait_to_reach = False
+            self.first_time_entering_state = False
 
 ########################################## UTILITY FUNCTIONS ############################################
+
+
 
 def convert_next_task_to_nav_order(current_task: Task):
     nav_order = MasterNavigationMessage()
@@ -1330,7 +1394,6 @@ def exit_handler(sig, frame) -> None:
 def main(args=None):
     global clients_instance
     global subscribers_instance
-
     # Initialize ROS 2
     rclpy.init(args=args)
     communication_instances_init()
@@ -1338,7 +1401,8 @@ def main(args=None):
     # Create all nodes
     current_nav_state_sub = NavigatorStateSubscriber()
     executor = MultiThreadedExecutor()
-
+    time_counter = TimeCounter()
+    robot_stuck_wait_to_reach = Robot_Stuck_Checker_WaitToReach()
     # Add nodes to the executor
     executor.add_node(clients_instance.get_next_task_point_client)
     executor.add_node(clients_instance.get_next_subtask_client)
@@ -1346,6 +1410,8 @@ def main(args=None):
     executor.add_node(current_nav_state_sub)
     executor.add_node(subscribers_instance.lidar_obstacle_detected_subscriber)
     executor.add_node(clients_instance.delete_task_client)
+    executor.add_node(time_counter)
+    executor.add_node(robot_stuck_wait_to_reach)
     # Register signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, exit_handler)
 
@@ -1369,7 +1435,8 @@ def main(args=None):
         current_nav_state_sub.destroy_node()
         subscribers_instance.lidar_obstacle_detected_subscriber.destroy_node()
         clients_instance.delete_task_client.destroy_node()
-
+        time_counter.destroy_node()
+        robot_stuck_wait_to_reach.destroy_node()
         # Shutdown ROS 2
         rclpy.shutdown()
 
