@@ -82,7 +82,7 @@ class GetNextSubTaskService(Node):
     def handle_get_next_subtask(self, request, response):
         global available_tasks
         global clients_instance
-        #clients_instance.get_available_tasks_client.send_request()#removed this because 
+        clients_instance.get_available_tasks_client.send_request()#removed this because 
         #i don't need to get the list everytime i do a subtask
         self.get_logger().info('Got a request About NextSubtask... Now sending a response')    
         #print_all_subtasks()
@@ -273,7 +273,7 @@ def main(args=None):
     global mechanism_state
     rclpy.init(args=args)
     communication_instances_init()
-    clients_instance.get_available_tasks_client.send_request()
+    #clients_instance.get_available_tasks_client.send_request()
     mechanism_state = MechanismState()
     mechanism_instance = FirstMechanism()
     mechanism_instance.deploy_forklift()

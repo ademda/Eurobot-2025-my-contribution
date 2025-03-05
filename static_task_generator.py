@@ -239,7 +239,7 @@ class MapStateUpdater(Node):
                 while current_index < len(available_tasks) - 1:
                     # Find the next BUILDING_PICKUP task for replacement
                     next_task_index = next((i for i in range(current_index + 1, len(available_tasks)) 
-                                            if available_tasks[i].type == TaskType.BUILDING_PICKUP), None)
+                                            if (available_tasks[i].type == TaskType.BUILDING_PICKUP and  available_tasks[i].id != 1)), None)
                     
                     if next_task_index is None:
                         self.get_logger().warn('No more BUILDING_PICKUP tasks to cascade replacements')
