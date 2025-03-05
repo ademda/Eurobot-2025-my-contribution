@@ -7,7 +7,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 from geometry_msgs.msg import Point
 from ros_custom_messages.srv import GetMapState  # Import the service definition
 from ros_custom_messages.msg import ObstacleMsg, TaskMsg  #
-
+robot_current_state = 0
 # Map and robot dimensions in millimeters
 MAP_LENGTH_MM = 3000  # Map length in millimeters (longer side)
 MAP_WIDTH_MM = 2000   # Map width in millimeters (shorter side)
@@ -51,10 +51,16 @@ class RobotSimulation(Node):
         # Timer to periodically request map state
         self.timer = self.create_timer(1.5, self.request_map_state)
 
+        # True tasks places service client
+        self.true_tasks_client = self.create_client(GetMapState, 'true_tasks_places_service')
+        while not self.true_tasks_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().warn('Waiting for true_tasks_places_service...')
+        self.timer_true_tasks = self.create_timer(2.0, self.request_true_tasks)
+
         # Storage for tasks and obstacles
         self.tasks = []
         self.obstacles = []
-
+        self.true_tasks = []
         # Robot's position and orientation (initialized to 0)
         self.robot_x = 0.0  # X position in millimeters NEEEEEEEEEED TO RETIRN  IT TO 0
         self.robot_y = 0.0  # Y position in millimeters  NEEEEEEEEEED TO RETIRN  IT TO 0
@@ -70,6 +76,19 @@ class RobotSimulation(Node):
             request = GetMapState.Request()  # Create an empty request
             future = self.map_state_client.call_async(request)
             future.add_done_callback(self.handle_map_state_response)
+
+    def request_true_tasks(self):
+        request = GetMapState.Request()
+        future = self.true_tasks_client.call_async(request)
+        future.add_done_callback(self.handle_true_tasks_response)
+
+    def handle_true_tasks_response(self, future):
+        try:
+            response = future.result()
+            self.true_tasks = response.tasks
+            self.get_logger().info(f"Updated true tasks: {len(self.true_tasks)} tasks")
+        except Exception as e:
+            self.get_logger().error(f"Failed to get true tasks: {e}")
 
     def handle_map_state_response(self, future):
         """Callback to handle the response from the map state service."""
@@ -92,14 +111,20 @@ class RobotSimulation(Node):
 
     def nav_callback(self, msg):
         """Callback function to update the robot's position and orientation immediately."""
-        if not self.stop_signal_received:  # Only update position if stop signal not received
+         # Only update position if stop signal not received
             # Instantly update robot's position and orientation from the message
+        robot_current_state = msg.nav_current_state
+        if robot_current_state != 0:
             self.robot_x = msg.nav_current_x
             self.robot_y = msg.nav_current_y
             self.robot_angle = msg.nav_current_angle  # Target orientation
-            self.get_logger().info(f"Teleported to: X={self.robot_x}, Y={self.robot_y}, Angle={self.robot_angle}")
-            self.robot_x = self.robot_x - WHEEL_CENTER_DISTANCE*math.cos(math.radians(self.robot_angle))
-            self.robot_y = self.robot_y - WHEEL_CENTER_DISTANCE*math.sin(math.radians(self.robot_angle))
+        else :
+            self.robot_x = 1200.0
+            self.robot_angle = 90.0
+            self.robot_y = 275.5
+        self.get_logger().info(f"Teleported to: X={self.robot_x}, Y={self.robot_y}, Angle={self.robot_angle}")
+        self.robot_x = self.robot_x - WHEEL_CENTER_DISTANCE*math.cos(math.radians(self.robot_angle))
+        self.robot_y = self.robot_y - WHEEL_CENTER_DISTANCE*math.sin(math.radians(self.robot_angle))
 
     def stop_callback(self, msg):
         """Callback function to stop the robot."""
@@ -177,6 +202,13 @@ def main(args=None):
         # Create surfaces for tasks and obstacles
         task_surface = pygame.Surface((20, 20), pygame.SRCALPHA)  # Transparent surface for tasks
         task_surface.fill((0, 255, 0, 128))  # Semi-transparent green (R, G, B, Alpha)
+        
+        task_surface = pygame.Surface((20, 20), pygame.SRCALPHA)
+        task_surface.fill((0, 255, 0, 128))
+        true_task_surface = pygame.Surface((20, 20), pygame.SRCALPHA)
+        true_task_surface.fill((255, 165, 0, 255))
+        obstacle_surface = pygame.Surface((20, 20), pygame.SRCALPHA)
+        obstacle_surface.fill((255, 0, 0, 128))
 
         obstacle_surface = pygame.Surface((20, 20), pygame.SRCALPHA)  # Transparent surface for obstacles
         obstacle_surface.fill((255, 0, 0, 128))  # Semi-transparent red (R, G, B, Alpha)
@@ -196,7 +228,10 @@ def main(args=None):
 
             # Draw the obstacle surface centered at the obstacle's position
             screen.blit(obstacle_surface, (obs_x_px - 10, obs_y_px - 10))  # Offset by half the surface size to center
-
+        for true_task in robot_simulation_node.true_tasks:
+            true_task_x_px = int(true_task.position.x * SCALE_X)
+            true_task_y_px = int(axis_conversion(true_task.position.y) * SCALE_Y)
+            screen.blit(true_task_surface, (true_task_x_px - 10, true_task_y_px - 10))
 
         # Update the display
         pygame.display.flip()
