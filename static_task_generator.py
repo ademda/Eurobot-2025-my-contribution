@@ -343,7 +343,7 @@ class MapStateUpdater(Node):
 subtasks_id0 = [
     #MechanismSubTask(order=0,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.BONDEROLE_SERVO_HOLD),
     MechanismSubTask(order=0,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.BONDEROLE_SERVO_REALEASE),
-    NavSubTask(order=1, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=1196.0, y=500.0, theta=655.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.NO),#y was 200
+    NavSubTask(order=1, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=1196.0, y=500.0, theta=655.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.NO),
 ]   
 
 #blacet subtasks id1 mrigla
@@ -357,13 +357,13 @@ subtasks_id1 = [
 subtasks_id2 = [
     #NavSubTask(order=0, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=744.0, y=258.0, theta=270.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.SLOW, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.NO),#na9ast 4 cm 
     MechanismSubTask(order=0,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.DROP_CANS),
-    NavSubTask(order=1, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=770.0,y=500.0, theta=270.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.NO),#y was 310
+    NavSubTask(order=1, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=770.0,y=500.0, theta=270.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.NO),
 ]
 #blacet subtasks id3 mrigla
 subtasks_id3 = [
     MechanismSubTask(order=0,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.LOWER_PLANKS),
     MechanismSubTask(order=1,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.GRAB_CANS),
-    NavSubTask(order=2, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=1100.0, y=823.0, theta=90.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),
+    NavSubTask(order=2, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=1100.0, y=823.0, theta=655.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),#theta was 90
     MechanismSubTask(order=3,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.ELEVATE_PLANKS_ABOVE),
 
 ]
@@ -445,7 +445,7 @@ subtasks_id14 = [
 subtasks_id15 = [
     MechanismSubTask(order=0,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.LOWER_PLANKS),
     MechanismSubTask(order=1,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.GRAB_CANS),
-    NavSubTask(order=2, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=1900.0, y=823.0, theta=90.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),
+    NavSubTask(order=2, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=1900.0, y=823.0, theta=655.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),#theta was 90.0
     MechanismSubTask(order=3,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.ELEVATE_PLANKS_ABOVE),
 ]
 
@@ -484,7 +484,7 @@ available_tasks = [
     Task(id=3, position=Pose2D(x=1100.0, y=608.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id3),
     Task(id=4, position=Pose2D(x=1226.0, y=635.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id4),
     Task(id=1, position=Pose2D(x=770.0, y=571.7, theta=float(270.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id1),
-    Task(id=2, position=Pose2D(x=770.0, y=258.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id2),
+    Task(id=2, position=Pose2D(x=770.0, y=258.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id2), 
     Task(id=15, position=Pose2D(x=1900.0, y=608.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id15),
     Task(id=6, position=Pose2D(x=1226.0, y=635.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id6),
     Task(id=13, position=Pose2D(x=365.0, y=1780.0, theta=float(90.0)), type=TaskType.RETURN_TO_FINISH_SPOT,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=[]),
@@ -495,7 +495,9 @@ available_tasks = [
     Task(id=10, position=Pose2D(x=2769.0, y=330.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id10),
     Task(id=11, position=Pose2D(x=2640.0, y=1325.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id11),
     Task(id=12, position=Pose2D(x=2365.0, y=884.0, theta=float(0.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id12),
-    Task(id=14, position=Pose2D(x=2230.0, y=521.7, theta=float(270.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id14)
+    Task(id=14, position=Pose2D(x=2230.0, y=521.7, theta=float(270.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id14),
+    Task(id=15, position=Pose2D(x=1920.0, y=950.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id15),
+    Task(id=16, position=Pose2D(x=831.0, y=1730.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id16)
 ]
 
 yellow_private_task = Task(id=16, position=Pose2D(x=831.0, y=1385.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id16)
@@ -770,14 +772,9 @@ class MyRobotPositionSubscriber(Node):
         global current_position
         global robot_current_state
         robot_current_state = msg.nav_current_state
-        if (robot_current_state != 0):
-            current_position.x = msg.nav_current_x
-            current_position.y = msg.nav_current_y
-            current_position.theta = msg.nav_current_angle
-        else :
-            current_position.x = 1200.0
-            current_position.y = 275.5
-            current_position.theta = 90.0
+        current_position.x = msg.nav_current_x
+        current_position.y = msg.nav_current_y
+        current_position.theta = msg.nav_current_angle
         #self.get_logger().info(f'Current position: {current_position}')
         #print("robot_current_state", robot_current_state)
         #print("current_position.x",current_position.x)
@@ -834,8 +831,8 @@ def find_equivalent_task(index):
         if task.id == true_tasks[index].id:
             return i
         i += 1
-    print("!!!!!!didn't find the equivalent task in availabele tasks list now returning the same index")    
-    return index
+    print("!!!!!!didn't find the equivalent task in availabele tasks list now returning the same None")    
+    return None
 
 def find_equivalent_true_task(index):
     global available_tasks
