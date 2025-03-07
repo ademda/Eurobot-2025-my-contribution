@@ -205,7 +205,6 @@ class Obstacle:
         self.position = position
         self.type = obstacle_type
         
-
 class MapStateUpdater(Node):
     def __init__(self):
         super().__init__('map_state_updater')
@@ -231,43 +230,89 @@ class MapStateUpdater(Node):
                 (enemy_position.y - minimal_error_distance_enemy <= task.position.y <= enemy_position.y + minimal_error_distance_enemy) and
                 task.type == TaskType.BUILDING_PICKUP):
                 
-                self.get_logger().warn(f'Replacing task at position {task.position.x} and {task.position.y} based on ENEMY POSITION')
-                print("index in the true tasks list",index)
-                # Start cascading replacements from the current index
-                current_index = find_equivalent_task(index)
-                true_tasks.pop(index)
-                while current_index < len(available_tasks) - 1:
-                    # Find the next BUILDING_PICKUP task for replacement
-                    next_task_index = next((i for i in range(current_index + 1, len(available_tasks)) 
-                                            if (available_tasks[i].type == TaskType.BUILDING_PICKUP and  available_tasks[i].id != 1)), None)
-                    
-                    if next_task_index is None:
-                        self.get_logger().warn('No more BUILDING_PICKUP tasks to cascade replacements')
-                        break
+                if task.id ==1:
+                    self.get_logger().warn(f'Replacing task at position {task.position.x} and {task.position.y} based on ENEMY POSITION')
+                    print("index in the true tasks list",index)
+                    # Start cascading replacements from the current index
+                    current_index = find_equivalent_task(index)
+                    true_tasks.pop(index)
+                    while current_index < len(available_tasks) - 1:
+                        # Find the next BUILDING_PICKUP task for replacement
+                        next_task_index = next((i for i in range(current_index + 1, len(available_tasks)) 
+                                                if (available_tasks[i].type == TaskType.BUILDING_PICKUP and  available_tasks[i].id != 1)), None)
 
-                    # Replace the current task with the next BUILDING_PICKUP task
-                    available_tasks[current_index] = available_tasks[next_task_index]
-                    self.get_logger().warn(f'Replaced task at index {current_index} with task at position {available_tasks[next_task_index].position}')
+                        next_dropoff_task_index = next((i for i in range(current_index + 1, len(available_tasks)) 
+                                                if (available_tasks[i].type == TaskType.BUILDING_DROPDOWN and  available_tasks[i].id != 1)), None)
 
-                    # Move to the next task in the chain
-                    current_index = next_task_index
+                        next_next_dropoff_task_index = next((i for i in range(next_dropoff_task_index + 1, len(available_tasks)) 
+                                                if (available_tasks[i].type == TaskType.BUILDING_DROPDOWN and  available_tasks[i].id != 1)), None)
 
-                # Remove the last replaced task from the list to avoid duplication
-                last_task_index = next((i for i in range(current_index, len(available_tasks)) 
-                                        if available_tasks[i].type == TaskType.BUILDING_PICKUP), None)
-                print("last task index",last_task_index)
-                if last_task_index:
-                    self.get_logger().warn(f'Removing final replaced task at index {last_task_index} from available_tasks')
-                    available_tasks.pop(last_task_index)
+                        if next_task_index is None:
+                            self.get_logger().warn('No more BUILDING_PICKUP tasks to cascade replacements')
+                            break
 
-                next_dropoff_index = next((i for i in range(last_task_index, len(available_tasks)) 
-                               if available_tasks[i].type == TaskType.BUILDING_DROPDOWN), None)
-    
-                if next_dropoff_index is not None:
-                    self.get_logger().warn(f'Removing next BUILDING_DROPDOWN task at index {next_dropoff_index} from available_tasks')
-                    true_task_next_dropoff_index=find_equivalent_true_task(next_dropoff_index)
-                    available_tasks.pop(next_dropoff_index)    
-                    true_tasks.pop(true_task_next_dropoff_index)
+                        # Replace the current task with the next BUILDING_PICKUP task
+                        available_tasks[current_index] = available_tasks[next_task_index]
+                        self.get_logger().warn(f'Replaced task at index {current_index} with task at position {available_tasks[next_task_index].position}')
+                        available_tasks[next_dropoff_task_index] = available_tasks[next_next_dropoff_task_index]
+
+                        # Move to the next task in the chain
+                        current_index = next_task_index
+
+                    last_task_index = next((i for i in range(current_index, len(available_tasks)) 
+                                            if available_tasks[i].type == TaskType.BUILDING_PICKUP), None)
+                    print("last task index",last_task_index)
+                    if last_task_index:
+                        self.get_logger().warn(f'Removing final replaced task at index {last_task_index} from available_tasks')
+                        available_tasks.pop(last_task_index)
+
+                    next_dropoff_index = next((i for i in range(last_task_index, len(available_tasks)) 
+                                if available_tasks[i].type == TaskType.BUILDING_DROPDOWN), None)
+        
+                    if next_dropoff_index is not None:
+                        self.get_logger().warn(f'Removing next BUILDING_DROPDOWN task at index {next_dropoff_index} from available_tasks')
+                        true_task_next_dropoff_index=find_equivalent_true_task(next_dropoff_index)
+                        available_tasks.pop(next_dropoff_index)    
+                        true_tasks.pop(true_task_next_dropoff_index)
+
+                else:
+                    self.get_logger().warn(f'Replacing task at position {task.position.x} and {task.position.y} based on ENEMY POSITION')
+                    print("index in the true tasks list",index)
+                    # Start cascading replacements from the current index
+                    current_index = find_equivalent_task(index)
+                    true_tasks.pop(index)
+                    while current_index < len(available_tasks) - 1:
+                        # Find the next BUILDING_PICKUP task for replacement
+                        next_task_index = next((i for i in range(current_index + 1, len(available_tasks)) 
+                                                if (available_tasks[i].type == TaskType.BUILDING_PICKUP and  available_tasks[i].id != 1)), None)
+                        
+                        if next_task_index is None:
+                            self.get_logger().warn('No more BUILDING_PICKUP tasks to cascade replacements')
+                            break
+
+                        # Replace the current task with the next BUILDING_PICKUP task
+                        available_tasks[current_index] = available_tasks[next_task_index]
+                        self.get_logger().warn(f'Replaced task at index {current_index} with task at position {available_tasks[next_task_index].position}')
+
+                        # Move to the next task in the chain
+                        current_index = next_task_index
+
+                    # Remove the last replaced task from the list to avoid duplication
+                    last_task_index = next((i for i in range(current_index, len(available_tasks)) 
+                                            if available_tasks[i].type == TaskType.BUILDING_PICKUP), None)
+                    print("last task index",last_task_index)
+                    if last_task_index:
+                        self.get_logger().warn(f'Removing final replaced task at index {last_task_index} from available_tasks')
+                        available_tasks.pop(last_task_index)
+
+                    next_dropoff_index = next((i for i in range(last_task_index, len(available_tasks)) 
+                                if available_tasks[i].type == TaskType.BUILDING_DROPDOWN), None)
+        
+                    if next_dropoff_index is not None:
+                        self.get_logger().warn(f'Removing next BUILDING_DROPDOWN task at index {next_dropoff_index} from available_tasks')
+                        true_task_next_dropoff_index=find_equivalent_true_task(next_dropoff_index)
+                        available_tasks.pop(next_dropoff_index)    
+                        true_tasks.pop(true_task_next_dropoff_index)
             index += 1
 
 
@@ -722,11 +767,13 @@ class TrueTasksPLacesService(Node):
         response.obstacle_positions = []
         return response
     
+
 class Subscribers:
     def __init__(self):
         self.enemy_robot_position_subscriber = EnemyRobotPositionSubscriber()
         self.my_robot_position_subscriber = MyRobotPositionSubscriber()
         self.my_robot_color = RobotColorSubscriber()
+
 
 class EnemyRobotPositionSubscriber(Node):
     def __init__(self):

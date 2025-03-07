@@ -70,9 +70,6 @@ class Strategy(Node):
     def __init__(self):
         super().__init__('strategy_server')
 
-  
-        
-
 ########## COMMUNICATION CLASSES ###########
 
 class Services():
