@@ -139,6 +139,7 @@ next_task = None
 current_time = 0
 current_subtask_order = 0
 next_subtask_order = 0
+jack_state = False
 currently_doing_subtask = None #The differnce between current task and currently_doing_subtask is that even if current task is 
 # decided even before entering the statemachine of the task itself...but the currently_doing_subtask is decided when we actually
 # enter the statemachine of the task itself (this helps us distinguish when to go to moveon or task moveon after going to a suddenstop)
@@ -154,7 +155,7 @@ current_navigator_state = None
 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorIdle_en
 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Idle_en
 
-init_position = MasterNavigationMessage(nav_target_x=1200.0,
+"""init_position = MasterNavigationMessage(nav_target_x=1200.0,
                                         nav_target_y=275.5,
                                         nav_target_angle=90.0,
                                         nav_is_forward=True,
@@ -163,7 +164,9 @@ init_position = MasterNavigationMessage(nav_target_x=1200.0,
                                         nav_linear_acceleration_choice=0,
                                         nav_angular_acceleration_choice=0,
                                         nav_is_with_platforms = False,
-                                        )#yellow init position
+                                        )#yellow init position"""
+
+init_position = None
 
 """init_position = MasterNavigationMessage(nav_target_x=1800.0,
                                         nav_target_y=195.5,
@@ -368,9 +371,11 @@ class WaitForSignal(smach.State):
         global current_navigator_state #returned as a msg
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
+        global jack_state
+        print(jack_state)
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.1)
-        if(MASTER_CurrentNavigatorState_en == MASTER_NavigatorStates_ten.MASTER_NavigatorReady_en):
+        if(MASTER_CurrentNavigatorState_en == MASTER_NavigatorStates_ten.MASTER_NavigatorReady_en and jack_state == True):
             #time.sleep(1) #Maybe i need to add the sleep function 
             return 'Go to: MoveOn'
         else:
@@ -397,15 +402,15 @@ class MoveOn(smach.State):
         currently_doing_subtask = TaskType.NORMAL_NAV.value
         signal.signal(signal.SIGINT, exit_handler)
         get_next_task_point()
-        print("Nav Roder Details:")
+        #print("Nav Roder Details:")
         #print(f"nav_target_x: {current_task.position.x}")
         #print(f"nav_target_y: {current_task.position.y}")
         #print(f"nav_target_angle: {current_task.position.theta}")
-        print(f"nav_is_forward: {next_task.direction}")
-        print(f"nav_linear_velocity_choice: {next_task.linear_velocity}")
-        print(f"nav_angular_velocity_choice: {next_task.angular_velocity}")
-        print(f"nav_linear_acceleration_choice: {next_task.linear_acceleration}")
-        print(f"nav_angular_acceleration_choice: {next_task.angular_acceleration}")
+        #print(f"nav_is_forward: {next_task.direction}")
+        #print(f"nav_linear_velocity_choice: {next_task.linear_velocity}")
+        #print(f"nav_angular_velocity_choice: {next_task.angular_velocity}")
+        #print(f"nav_linear_acceleration_choice: {next_task.linear_acceleration}")
+        #print(f"nav_angular_acceleration_choice: {next_task.angular_acceleration}")
         nav_order = convert_next_task_to_nav_order(next_task)
         send_target_order(nav_order)
         time.sleep(communication_wait_time)
@@ -1041,14 +1046,38 @@ class Publishers(Node):
         self.get_logger().info(f"Initialised all publishers ")    
 
 ########################################## SUBSCRIBERS CLASS ###############################################
-
+    
 class Subscribers(Node):
     def __init__(self):
         super().__init__('subscribers')
         self.navigator_receive_position_subscriber = Navigator_Receive_Position_Subscriber()
         self.lidar_obstacle_detected_subscriber = LidarObstacleDetectedSubscriber()
+        self.init_position_subscriber = InitPositionSubscriber()
+        self.jack_signal_subscriber = JackSignalSubscriber()
         self.get_logger().info(f"Initialised all subscribers ")   
         
+class InitPositionSubscriber(Node):
+    def __init__(self):
+        super().__init__('statemachine_init_position_subscriber')
+        self.create_subscription(MasterNavigationMessage,'init_position',self.init_position_callback ,10)
+    
+    def init_position_callback(self, msg):
+        global init_position
+        init_position = msg
+        #print("JEEEEEEEEEEEEEEEEEEEEEEEEEEEERE")
+        #print(init_position.nav_target_x)
+        #print(init_position.nav_target_y)
+        self.get_logger().info(f'Robot init_position: {init_position}')
+
+class JackSignalSubscriber(Node):
+    def __init__(self):
+        super().__init__('statemachine_jack_signal_subscriber')
+        self.create_subscription(Bool,'jack_signal',self.jack_signal_callback ,10)
+    
+    def jack_signal_callback(self, msg):
+        global jack_state
+        jack_state = msg.data
+        #self.get_logger().info(f'jack_state: {jack_state}')
 
 class Navigator_Receive_Position_Subscriber(Node):
     def __init__(self):
@@ -1077,7 +1106,7 @@ class LidarObstacleDetectedSubscriber(Node):
     def lidar_obstacle_detected_callback(self, msg):
         global lidar_obstacle_detected
         lidar_obstacle_detected = msg.data
-        self.get_logger().warn(f'Obstacle Detected or not: {lidar_obstacle_detected}')
+        #self.get_logger().warn(f'Obstacle Detected or not: {lidar_obstacle_detected}')
 
 #for testing without the stm32 returning the real robot state
 class NavigatorStateSubscriber(Node):
@@ -1091,7 +1120,7 @@ class NavigatorStateSubscriber(Node):
     def navigator_state_callback(self, msg):
         
         global current_navigator_state
-        self.get_logger().info('NavigatorStateSubscriber node has been started.')
+        #self.get_logger().info('NavigatorStateSubscriber node has been started.')
         # Assign the received value to the global variable
         current_navigator_state = msg.data       
 
@@ -1392,6 +1421,7 @@ def exit_handler(sig, frame) -> None:
 ########################################## MAIN FUNCTION ####################################################
 
 def main(args=None):
+    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
     global clients_instance
     global subscribers_instance
     # Initialize ROS 2
@@ -1412,6 +1442,8 @@ def main(args=None):
     executor.add_node(clients_instance.delete_task_client)
     executor.add_node(time_counter)
     executor.add_node(robot_stuck_wait_to_reach)
+    executor.add_node(subscribers_instance.jack_signal_subscriber)
+    executor.add_node(subscribers_instance.init_position_subscriber)
     # Register signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, exit_handler)
 
@@ -1437,6 +1469,8 @@ def main(args=None):
         clients_instance.delete_task_client.destroy_node()
         time_counter.destroy_node()
         robot_stuck_wait_to_reach.destroy_node()
+        subscribers_instance.jack_signal_subscriber.destroy_node()
+        subscribers_instance.init_position_subscriber.destroy_node()
         # Shutdown ROS 2
         rclpy.shutdown()
 
