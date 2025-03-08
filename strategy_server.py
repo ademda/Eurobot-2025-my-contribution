@@ -163,7 +163,11 @@ class GetNextTaskPointService(Node):
         #next_task = get_next_task(request.task_id) #heer i changed to returning the next
         #available task in teh available_tasks list
         response = GetNextTaskPoint.Response()
-        next_task = available_tasks[0]
+        if request.task_id == -1000:
+            print("HEEEEEERE")
+            next_task = find_finished_task()
+        else:    
+            next_task = available_tasks[0]
         response = convert_task_to_response_msg(next_task, response)
         print(next_task.id)
         print(next_task.type)
@@ -191,6 +195,15 @@ def communication_instances_init():
     servers_instance = Services()
     
 ################## UTILITY FUNCTIONS ###################
+
+def find_finished_task():
+    global available_tasks
+    for task in available_tasks:
+        if task.type == TaskType.RETURN_TO_FINISH_SPOT.value:
+            return task
+        
+    print("No finished task found.")    
+    return None
 
 def get_map_state():
         global clients_instance
