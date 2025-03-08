@@ -128,7 +128,7 @@ we use them to transition between states
     """
 ##################################### GLOBAL VARIABLES ####################################
 ####GLOBAL VARIABLES#####
-
+TOTAL_PLAYING_TIME = 100 #in seconds 40 just for test need to return it to 100
 publishers_instance = None
 subscribers_instance = None
 clients_instance = None
@@ -136,9 +136,10 @@ servers_instance = None
 current_position = None #Pose2D format
 current_task = None
 next_task = None
-current_time = 0
+current_playing_time = 0
 current_subtask_order = 0
 next_subtask_order = 0
+return_to_finish_spot_flag = False
 jack_state = False
 currently_doing_subtask = None #The differnce between current task and currently_doing_subtask is that even if current task is 
 # decided even before entering the statemachine of the task itself...but the currently_doing_subtask is decided when we actually
@@ -284,6 +285,7 @@ class MainStateMachine(smach.StateMachine):
             smach.StateMachine.add('Building_DropDown_WaitToReach',Building_DropDown_WaitToReach(),
                                 transitions={'Go to: Building_DropDown_DestinationReached': 'Building_DropDown_DestinationReached',
                                             'Go to: Building_DropDown_WaitToReach': 'Building_DropDown_WaitToReach',
+                                            'Go to: BlockageDetected': 'BlockageDetected',
                                             'Go to: SuddenStop': 'SuddenStop'})
             
             smach.StateMachine.add('Building_DropDown_DestinationReached',Building_DropDown_DestinationReached(),
@@ -303,6 +305,7 @@ class MainStateMachine(smach.StateMachine):
             smach.StateMachine.add('Bonderole_Pose_WaitToReach',Bonderole_Pose_WaitToReach(),
                                 transitions={'Go to: Bonderole_Pose_DestinationReached': 'Bonderole_Pose_DestinationReached',
                                             'Go to: Bonderole_Pose_WaitToReach': 'Bonderole_Pose_WaitToReach',
+                                            'Go to: BlockageDetected': 'BlockageDetected',
                                             'Go to: SuddenStop': 'SuddenStop'})
             
             smach.StateMachine.add('Bonderole_Pose_DestinationReached',Bonderole_Pose_DestinationReached(),
@@ -397,8 +400,10 @@ class MoveOn(smach.State):
         global current_subtask_order
         global next_subtask_order
         global currently_doing_subtask 
+        global return_to_finish_spot_flag
         current_subtask_order = 0
         next_subtask_order = 0
+        order_finish_stop()
         currently_doing_subtask = TaskType.NORMAL_NAV.value
         signal.signal(signal.SIGINT, exit_handler)
         get_next_task_point()
@@ -438,7 +443,7 @@ class WaitToReach(smach.State):
                                              'Go to: WaitToReach'])
     
     def execute(self, userdata):
-        global current_time
+        global current_playing_time
         global robot_stuck_wait_to_reach
         global current_navigator_state #returned as a msg
         global MASTER_CurrentNavigatorState_en
@@ -447,6 +452,7 @@ class WaitToReach(smach.State):
         global subscribers_instance
         global lidar_obstacle_detected
         global next_task
+        order_finish_stop()
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         # Maybe i need to add time.sleep(0.05)
@@ -486,6 +492,7 @@ class DestinationReached(smach.State):
         global next_task
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
+        order_finish_stop()
         send_acknowledge_signal()
         current_task = next_task #i changed the location of current_task = next_task from wait to reach
         #to DestinationReached to handle the SuddenStop case in optimal way
@@ -549,8 +556,10 @@ class Building_PickUp_MoveOn(smach.State):
         global current_task
         global next_subtask_order
         global clients_instance
+        global return_to_finish_spot_flag
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
+        order_finish_stop()
         response = get_next_subtask()
         if (response.current_subtask_order == -1):
             """
@@ -610,6 +619,7 @@ class Building_PickUp_WaitToReach(smach.State):
         global lidar_obstacle_detected
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
+        order_finish_stop()
         if lidar_obstacle_detected or robot_stuck_wait_to_reach:
             #maybe i need to sleep a bit and than check again
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_SuddenStop_en
@@ -642,6 +652,7 @@ class Building_PickUp_DestinationReached(smach.State):
         current_subtask_order = next_subtask_order
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
+        order_finish_stop()
         send_acknowledge_signal()
         time.sleep(communication_wait_time)
         if(current_navigator_state == 1):
@@ -693,6 +704,7 @@ class Building_DropDown_MoveOn(smach.State):
         global current_task
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
+        order_finish_stop()
         response = get_next_subtask()
         if (response.current_subtask_order == -1):
             clients_instance.delete_task_client.send_request(current_task.id)
@@ -731,7 +743,8 @@ class Building_DropDown_WaitToReach(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: Building_DropDown_DestinationReached',
                                              'Go to: Building_DropDown_WaitToReach',
-                                             'Go to: SuddenStop']) 
+                                             'Go to: SuddenStop',
+                                             'Go to: BlockageDetected']) 
     
     def execute(self, userdata):
         global current_navigator_state #returned as a msg
@@ -740,11 +753,17 @@ class Building_DropDown_WaitToReach(smach.State):
         global lidar_obstacle_detected
         global robot_stuck_wait_to_reach
         time.sleep(0.05)
+        order_finish_stop()
+        signal.signal(signal.SIGINT, exit_handler)
+
         if lidar_obstacle_detected or robot_stuck_wait_to_reach:
             #maybe i need to sleep a bit and than check again
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_SuddenStop_en
             return 'Go to: SuddenStop'
-        signal.signal(signal.SIGINT, exit_handler)
+
+        elif ( current_navigator_state == 9 or current_navigator_state == 10 ):
+            return 'Go to: BlockageDetected'
+
         if(current_navigator_state == 3):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_DestinationReached_en
@@ -767,6 +786,7 @@ class Building_DropDown_DestinationReached(smach.State):
         global current_subtask_order
         global next_subtask_order
         time.sleep(0.05)
+        order_finish_stop()
         current_subtask_order = next_subtask_order
         signal.signal(signal.SIGINT, exit_handler)
         send_acknowledge_signal()
@@ -819,6 +839,7 @@ class Bonderole_Pose_MoveOn(smach.State):
         global current_task
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
+        order_finish_stop()
         response = get_next_subtask()
         if (response.current_subtask_order == -1):
             clients_instance.delete_task_client.send_request(current_task.id)
@@ -857,7 +878,9 @@ class Bonderole_Pose_WaitToReach(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: Bonderole_Pose_DestinationReached',
                                              'Go to: Bonderole_Pose_WaitToReach',
-                                             'Go to: SuddenStop']) 
+                                             'Go to: SuddenStop',
+                                             'Go to: BlockageDetected',
+                                             ]) 
     
     def execute(self, userdata):
         global current_navigator_state #returned as a msg
@@ -867,15 +890,20 @@ class Bonderole_Pose_WaitToReach(smach.State):
         global robot_stuck_wait_to_reach
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
+        order_finish_stop()
         #here i need to check of blockage maybe there is confustion 
         if lidar_obstacle_detected or robot_stuck_wait_to_reach:
             #maybe i need to sleep a bit and than check again
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_SuddenStop_en
             return 'Go to: SuddenStop'
+            
         if(current_navigator_state == 3):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_DestinationReached_en
             return 'Go to: Bonderole_Pose_DestinationReached'
+
+        elif ( current_navigator_state == 9 or current_navigator_state == 10 ):
+            return 'Go to: BlockageDetected'
 
         else:
             return 'Go to: Bonderole_Pose_WaitToReach'
@@ -896,6 +924,7 @@ class Bonderole_Pose_DestinationReached(smach.State):
         current_subtask_order = next_subtask_order
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
+        order_finish_stop()
         send_acknowledge_signal()
         time.sleep(communication_wait_time)
         if(current_navigator_state == 1):
@@ -1067,7 +1096,7 @@ class InitPositionSubscriber(Node):
         #print("JEEEEEEEEEEEEEEEEEEEEEEEEEEEERE")
         #print(init_position.nav_target_x)
         #print(init_position.nav_target_y)
-        self.get_logger().info(f'Robot init_position: {init_position}')
+        #self.get_logger().info(f'Robot init_position: {init_position}')
 
 class JackSignalSubscriber(Node):
     def __init__(self):
@@ -1169,12 +1198,16 @@ class GetNextTaskPointClient(Node):
     def send_request(self):
         global current_task
         global next_task
+        global return_to_finish_spot_flag
+        return_to_finish_spot_checker()
         request = GetNextTaskPoint.Request()  # Create a request object
         
         self.get_logger().info('Sending request for available tasks...')
         if (current_task is None):
-            #here send -100 so the strategy node knows that the current_stask = Nonde: we start the match now
+            #here send -100 so the strategy node knows that the current_stask = None: we start the match now
             request.task_id = -100
+        elif return_to_finish_spot_flag == True:
+            request.task_id = -1000    
         # Send the request and block until a response is received
         else:
             request.nav_target_x = current_task.position.x
@@ -1182,19 +1215,19 @@ class GetNextTaskPointClient(Node):
             request.nav_target_angle = current_task.position.theta
             request.task_id = current_task.id
             request.task_type = current_task.type
-            print("Request Details:")
+            """print("Request Details:")
             print(f"nav_target_x: {request.nav_target_x}")
             print(f"nav_target_y: {request.nav_target_y}")
             print(f"nav_target_angle: {request.nav_target_angle}")
             print(f"task_id: {request.task_id}")
-            print(f"task_type: {request.task_type}")
+            print(f"task_type: {request.task_type}")"""
         future = self.client.call_async(request)
         rclpy.spin_until_future_complete(self, future)  # Wait until the service call is completed
 
         if future.done():
             try:
                 response = future.result()  # Get the response
-                print("Response Details:")
+                """print("Response Details:")
                 print(f"task_id: {response.task_id}")
                 print(f"nav_target_x: {response.nav_target_x}")
                 print(f"nav_target_y: {response.nav_target_y}")
@@ -1206,7 +1239,7 @@ class GetNextTaskPointClient(Node):
                 print(f"nav_angular_velocity_choice: {response.nav_angular_velocity_choice}")
                 print(f"nav_linear_acceleration_choice: {response.nav_linear_acceleration_choice}")
                 print(f"nav_angular_acceleration_choice: {response.nav_angular_acceleration_choice}")
-                print(f"nav_with_platforms: {response.nav_is_with_platforms}")
+                print(f"nav_with_platforms: {response.nav_is_with_platforms}")"""
                 # Update current_task with the received data
                 next_task = Task(
                     id=response.task_id,
@@ -1261,8 +1294,13 @@ class TimeCounter(Node):
         self.get_logger().info('Time Counter Node has been started.')
 
     def time_callback(self):
-        global current_time
-        current_time += 1
+        global jack_state
+        global current_playing_time
+        if jack_state == True:
+            current_playing_time += 1
+            print("playing time",current_playing_time)
+        
+    
 
 class Robot_Stuck_Checker_WaitToReach(Node):
     def __init__(self):
@@ -1278,27 +1316,27 @@ class Robot_Stuck_Checker_WaitToReach(Node):
     def robot_stuck_checker_wait_to_reach_callback(self):
         global MASTER_SMachineCurrentState_en
         global robot_stuck_wait_to_reach
-        global current_time
+        global current_playing_time
         if (MASTER_SMachineCurrentState_en == MASTER_SMachineStates_ten.MASTER_SMachine_WaitToReach_en
         or MASTER_SMachineCurrentState_en == MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_WaitToReach_en
         or MASTER_SMachineCurrentState_en == MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_WaitToReach_en
         or MASTER_SMachineCurrentState_en == MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_WaitToReach_en):
             
             if not self.first_time_entering_state:
-                self.local_time = current_time
+                self.local_time = current_playing_time
                 self.initial_test_x = current_position.x 
                 self.initial_test_y = current_position.y
                 self.initial_test_theta = current_position.theta
                 self.first_time_entering_state = True
             else :     
-                if (current_time - self.local_time) >= 3:
+                if (current_playing_time - self.local_time) >= 5:#was 3
                     if (abs(current_position.x-self.initial_test_x) < 0.3 and abs(current_position.y-self.initial_test_y) < 0.3 and abs(current_position.theta-self.initial_test_theta) < 0.3):
                         robot_stuck_wait_to_reach = True
                         self.get_logger().warn('Robot is stuck!!!!!!!!!!!!!!!!!!!!!!!!')
                     else:
                         robot_stuck_wait_to_reach = False
                     
-                    self.local_time = current_time
+                    self.local_time = current_playing_time
                     self.initial_test_x = current_position.x 
                     self.initial_test_y = current_position.y
                     self.initial_test_theta = current_position.theta    
@@ -1354,10 +1392,37 @@ def communication_instances_init():
     subscribers_instance= Subscribers()
     clients_instance = Clients()
     
+def order_finish_stop():
+    global current_playing_time
+    global TOTAL_PLAYING_TIME
+    if current_playing_time >= TOTAL_PLAYING_TIME:
+        print("NEEEEEEEEEEEEEEEEEED TO STOOOOOOOP")
+        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
+        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
+        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
+        send_reset_signal()
+
+def return_to_finish_spot_checker():
+    global current_task
+    global return_to_finish_spot_flag
+    global current_playing_time
+    print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+    print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+    print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+    print("current_playing_time from FINIIIIIIIIIIIISH SPOTTTTT", current_playing_time)
+    if current_playing_time >= (TOTAL_PLAYING_TIME - 25) and current_task.type == TaskType.BUILDING_DROPDOWN.value:
+        #here im not acutally doing a dropdown task...but based on the table: a dropdown is followed by a pickup
+        #and this funtion is called in moveon so if current_task is a dropdown than the next is pickup but i don't have the next task yet
+        #maybe need to change it to use next_task instead
+        print("RETURN TO FINISH SPOT IS TRIGERRED BECAUSENEXT TASK IS BUILDING PICKUP!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        return_to_finish_spot_flag = True #to disable this shit need to return it to True
 
 ########################################## SUBTASK FUNCTION  ############################################
 
-def get_next_subtask():
+def get_next_subtask():#
     global clients_instance
     response = clients_instance.get_next_subtask_client.send_request()
     """
