@@ -82,7 +82,8 @@ class GetNextSubTaskService(Node):
     def handle_get_next_subtask(self, request, response):
         global available_tasks
         global clients_instance
-        clients_instance.get_available_tasks_client.send_request()#removed this because 
+        if request.current_subtask_order == 0 :
+            clients_instance.get_available_tasks_client.send_request()#removed this because 
         #i don't need to get the list everytime i do a subtask
         self.get_logger().info('Got a request About NextSubtask... Now sending a response')    
         #print_all_subtasks()
@@ -252,6 +253,8 @@ def get_task_from_id(task_id):
         if task.id == task_id:
             print("SHHHHHHHHHHHHHHHHIT")
             return task  # Return the task when found
+    print("didn't find the task")
+    return None    
     
 def convert_subtask_to_nav_message(subtask: SubTaskMsg, response: GetNextSubTaskPoint.Response):
         response.current_subtask_order = subtask.order   
