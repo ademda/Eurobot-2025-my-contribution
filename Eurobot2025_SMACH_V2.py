@@ -49,7 +49,7 @@ from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from enum import Enum
 from geometry_msgs.msg import Pose2D
-from ros_custom_messages.msg import MasterAcknowledgeSignal, MasterNavigationMessage, MasterResetSignal, MasterStopSignal, NavigatorNavigationMessage
+from ros_custom_messages.msg import MasterAcknowledgeSignal, MasterNavigationMessage, MasterResetSignal, MasterStopSignal, NavigatorNavigationMessage, CurrentTask
 from ros_custom_messages.srv import GetNextTaskPoint, GetNextSubTaskPoint, DeleteTask
 from strategy.static_task_generator import Task, TaskType ,Direction, TaskTypeScore, SpeedChoice
 from std_msgs.msg import Int32, Bool
@@ -139,6 +139,7 @@ next_task = None
 current_playing_time = 0
 current_subtask_order = 0
 next_subtask_order = 0
+estimated_score = 0
 return_to_finish_spot_flag = False
 jack_state = False
 currently_doing_subtask = None #The differnce between current task and currently_doing_subtask is that even if current task is 
@@ -212,7 +213,8 @@ class MainStateMachine(smach.StateMachine):
                                                 
             smach.StateMachine.add('MoveOn', MoveOn(),
                                 transitions={'Go to: WaitToReach': 'WaitToReach',
-                                             'Go to: MoveOn': 'MoveOn',})
+                                             'Go to: MoveOn': 'MoveOn',
+                                             'Go to: BlockageDetected': 'BlockageDetected',})
                                                 
             smach.StateMachine.add('WaitToReach', WaitToReach(),
                                 transitions={'Go to: DestinationReached': 'DestinationReached',
@@ -224,7 +226,9 @@ class MainStateMachine(smach.StateMachine):
                                 transitions={ 'Go to: MoveOn': 'MoveOn',
                                             'Go to: BlockageDetected': 'BlockageDetected',
                                             'Go to: Bonderole_Pose_Init': 'Bonderole_Pose_Init',
-                                            'Go to: Building_PickUp_DestinationReached': 'Building_PickUp_DestinationReached',})
+                                            'Go to: Building_PickUp_DestinationReached': 'Building_PickUp_DestinationReached',
+                                            'Go to: Building_DropDown_MoveOn': 'Building_DropDown_MoveOn',
+                                            'Go to: Building_PickUp_MoveOn': 'Building_PickUp_MoveOn',})
 
             smach.StateMachine.add('SuddenStop', SuddenStop(),
                                transitions={'Go to: WaitSuddenStop': 'WaitSuddenStop',
@@ -260,7 +264,8 @@ class MainStateMachine(smach.StateMachine):
                                 transitions={'Go to: Building_PickUp_WaitToReach': 'Building_PickUp_WaitToReach',
                                             'Go to: Building_PickUp_MoveOn': 'Building_PickUp_MoveOn',
                                             'Go to: Building_PickUp_DestinationReached': 'Building_PickUp_DestinationReached',
-                                            'Go to: MoveOn': 'MoveOn',})
+                                            'Go to: MoveOn': 'MoveOn',
+                                            'Go to: BlockageDetected': 'BlockageDetected',})
             
             smach.StateMachine.add('Building_PickUp_WaitToReach',Building_PickUp_WaitToReach(),
                                 transitions={'Go to: Building_PickUp_DestinationReached': 'Building_PickUp_DestinationReached',
@@ -280,7 +285,8 @@ class MainStateMachine(smach.StateMachine):
                                 transitions={'Go to: Building_DropDown_WaitToReach': 'Building_DropDown_WaitToReach',
                                             'Go to: Building_DropDown_MoveOn': 'Building_DropDown_MoveOn',
                                             'Go to: Building_DropDown_DestinationReached': 'Building_DropDown_DestinationReached',
-                                            'Go to: MoveOn': 'MoveOn',})
+                                            'Go to: MoveOn': 'MoveOn',
+                                            'Go to: BlockageDetected': 'BlockageDetected',})
             
             smach.StateMachine.add('Building_DropDown_WaitToReach',Building_DropDown_WaitToReach(),
                                 transitions={'Go to: Building_DropDown_DestinationReached': 'Building_DropDown_DestinationReached',
@@ -300,7 +306,8 @@ class MainStateMachine(smach.StateMachine):
                                 transitions={'Go to: Bonderole_Pose_WaitToReach': 'Bonderole_Pose_WaitToReach',
                                             'Go to: Bonderole_Pose_MoveOn': 'Bonderole_Pose_MoveOn',
                                             'Go to: Bonderole_Pose_DestinationReached': 'Bonderole_Pose_DestinationReached',
-                                            'Go to: MoveOn': 'MoveOn',})
+                                            'Go to: MoveOn': 'MoveOn',
+                                            'Go to: BlockageDetected': 'BlockageDetected',})
             
             smach.StateMachine.add('Bonderole_Pose_WaitToReach',Bonderole_Pose_WaitToReach(),
                                 transitions={'Go to: Bonderole_Pose_DestinationReached': 'Bonderole_Pose_DestinationReached',
@@ -388,7 +395,9 @@ class WaitForSignal(smach.State):
 class MoveOn(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: WaitToReach',
-                                             'Go to: MoveOn'])
+                                             'Go to: MoveOn',
+                                             'Go to: BlockageDetected',
+                                             ])
     
     def execute(self, userdata):
         global current_navigator_state #returned as a msg
@@ -401,6 +410,7 @@ class MoveOn(smach.State):
         global next_subtask_order
         global currently_doing_subtask 
         global return_to_finish_spot_flag
+        global current_playing_time
         current_subtask_order = 0
         next_subtask_order = 0
         order_finish_stop()
@@ -408,21 +418,34 @@ class MoveOn(smach.State):
         signal.signal(signal.SIGINT, exit_handler)
         get_next_task_point()
         #print("Nav Roder Details:")
-        #print(f"nav_target_x: {current_task.position.x}")
-        #print(f"nav_target_y: {current_task.position.y}")
-        #print(f"nav_target_angle: {current_task.position.theta}")
+        print(f"nav_target_x: {next_task.position.x}")
+        print(f"nav_target_y: {next_task.position.y}")
+        print(f"nav_target_angle: {next_task.position.theta}")
+        print("current navigation state:",current_navigator_state)
         #print(f"nav_is_forward: {next_task.direction}")
         #print(f"nav_linear_velocity_choice: {next_task.linear_velocity}")
         #print(f"nav_angular_velocity_choice: {next_task.angular_velocity}")
         #print(f"nav_linear_acceleration_choice: {next_task.linear_acceleration}")
         #print(f"nav_angular_acceleration_choice: {next_task.angular_acceleration}")
         nav_order = convert_next_task_to_nav_order(next_task)
+        if next_task.type == TaskType.RETURN_TO_FINISH_SPOT.value : 
+            while current_playing_time < 90:
+                time.sleep(0.5)
+                print("waiting for PAMIS to leave")
+
         send_target_order(nav_order)
         time.sleep(communication_wait_time)
-        if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
+        #or current_navigator_state == 7  :return 'Go to: BlockageDetected'
+        if(current_navigator_state == 7):
             send_acknowledge_signal()
             time.sleep(communication_wait_time)
             return 'Go to: MoveOn'
+        
+        if(current_navigator_state == 9 or current_navigator_state == 10 ):
+            """send_acknowledge_signal()
+            time.sleep(communication_wait_time)
+            return 'Go to: MoveOn'"""
+            return 'Go to: BlockageDetected'
         elif (current_navigator_state == 3):#Added  the wait to receive acknowledge condition
             send_acknowledge_signal()
             time.sleep(communication_wait_time)  # Use time.sleep in ROS 2
@@ -545,7 +568,8 @@ class Building_PickUp_MoveOn(smach.State):
         smach.State.__init__(self, outcomes=['Go to: Building_PickUp_WaitToReach',
                                              'Go to: Building_PickUp_MoveOn',
                                              'Go to: Building_PickUp_DestinationReached',
-                                             'Go to: MoveOn']) 
+                                             'Go to: MoveOn',
+                                             'Go to: BlockageDetected',]) 
     
     def execute(self, userdata):
         global current_navigator_state #returned as a msg
@@ -585,9 +609,10 @@ class Building_PickUp_MoveOn(smach.State):
             send_target_order(nav_order)
             time.sleep(communication_wait_time)  
             if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
-                send_acknowledge_signal()
+                """send_acknowledge_signal()
                 time.sleep(communication_wait_time)
-                return 'Go to: Building_PickUp_MoveOn'
+                return 'Go to: Building_PickUp_MoveOn'"""
+                return 'Go to: BlockageDetected'
             elif (current_navigator_state == 3):
                 send_acknowledge_signal()
                 time.sleep(communication_wait_time)
@@ -691,7 +716,8 @@ class Building_DropDown_MoveOn(smach.State):
         smach.State.__init__(self, outcomes=['Go to: Building_DropDown_WaitToReach',
                                              'Go to: Building_DropDown_MoveOn',
                                              'Go to: Building_DropDown_DestinationReached',
-                                             'Go to: MoveOn']) 
+                                             'Go to: MoveOn',
+                                             'Go to: BlockageDetected',]) 
     
     def execute(self, userdata):
         global current_navigator_state #returned as a msg
@@ -702,11 +728,13 @@ class Building_DropDown_MoveOn(smach.State):
         global next_subtask_order
         global clients_instance
         global current_task
+        global estimated_score
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
         response = get_next_subtask()
         if (response.current_subtask_order == -1):
+            estimated_score = estimated_score + 4
             clients_instance.delete_task_client.send_request(current_task.id)
             return 'Go to: MoveOn'
 
@@ -721,9 +749,10 @@ class Building_DropDown_MoveOn(smach.State):
             send_target_order(nav_order)
             time.sleep(communication_wait_time)  
             if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
-                send_acknowledge_signal()
+                """send_acknowledge_signal()
                 time.sleep(communication_wait_time)
-                return 'Go to: Building_DropDown_MoveOn'
+                return 'Go to: Building_DropDown_MoveOn'"""
+                return 'Go to: BlockageDetected'
             elif (current_navigator_state == 3):
                 send_acknowledge_signal()
                 time.sleep(communication_wait_time)
@@ -827,7 +856,8 @@ class Bonderole_Pose_MoveOn(smach.State):
         smach.State.__init__(self, outcomes=['Go to: Bonderole_Pose_WaitToReach',
                                              'Go to: Bonderole_Pose_MoveOn',
                                              'Go to: Bonderole_Pose_DestinationReached',
-                                             'Go to: MoveOn'])
+                                             'Go to: MoveOn',
+                                             'Go to: BlockageDetected'])
     def execute(self, userdata):
         global current_navigator_state    
         global MASTER_CurrentNavigatorState_en
@@ -837,11 +867,13 @@ class Bonderole_Pose_MoveOn(smach.State):
         global next_subtask_order
         global clients_instance
         global current_task
+        global estimated_score
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
         response = get_next_subtask()
         if (response.current_subtask_order == -1):
+            estimated_score = estimated_score + 20
             clients_instance.delete_task_client.send_request(current_task.id)
             return 'Go to: MoveOn'
         
@@ -856,9 +888,10 @@ class Bonderole_Pose_MoveOn(smach.State):
             send_target_order(nav_order)
             time.sleep(communication_wait_time)  
             if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
-                send_acknowledge_signal()
+                """send_acknowledge_signal()
                 time.sleep(communication_wait_time)
-                return 'Go to: Bonderole_Pose_MoveOn'
+                return 'Go to: Bonderole_Pose_MoveOn'"""
+                return 'Go to: BlockageDetected'
             elif (current_navigator_state == 3):
                 send_acknowledge_signal()
                 time.sleep(communication_wait_time)
@@ -940,7 +973,9 @@ class BlockageDetected(smach.State):
         smach.State.__init__(self, outcomes=['Go to: MoveOn',
                                              'Go to: BlockageDetected',
                                              'Go to: Bonderole_Pose_Init',
-                                             'Go to: Building_PickUp_DestinationReached']) 
+                                             'Go to: Building_PickUp_DestinationReached',
+                                             'Go to: Building_DropDown_MoveOn',
+                                             'Go to: Building_PickUp_MoveOn']) 
 
     def execute(self, userdata):
         global next_task
@@ -949,6 +984,7 @@ class BlockageDetected(smach.State):
         global currently_doing_subtask
         global MASTER_CurrentNavigatorState_en
         global MASTER_SMachineCurrentState_en
+        global current_navigator_state
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         send_acknowledge_signal()
@@ -964,13 +1000,26 @@ class BlockageDetected(smach.State):
                 return 'Go to: Bonderole_Pose_Init'
             
             elif (current_task.type == TaskType.BUILDING_PICKUP.value and currently_doing_subtask == TaskType.BUILDING_PICKUP.value):
+                
+                if (current_task.id == 5 or current_task.id == 7 or current_task.id == 9 or current_task.id == 11 ):
+                    MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
+                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_DestinationReached_en
+                    return 'Go to: Building_PickUp_DestinationReached'
+                else :
+                    MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
+                    MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_MoveOn_en
+                    return 'Go to: Building_PickUp_MoveOn'
+
+            elif (current_task.type == TaskType.BUILDING_DROPDOWN.value and currently_doing_subtask == TaskType.BUILDING_DROPDOWN.value):
                 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
-                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_DestinationReached_en
-                return 'Go to: Building_PickUp_DestinationReached'
+                MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_MoveOn_en
+                time.sleep(3)
+                return 'Go to: Building_DropDown_MoveOn'
 
             else:    
+                time.sleep(3)
                 return 'Go to: MoveOn'
-
+        #the time.sleep(1) i added it to fix the problem of the robot get's stuck and oscilates between moveon blockage and wait to reach
         else:
             return 'Go to: BlockageDetected'
 
@@ -1052,10 +1101,15 @@ class ConfirmedStop(smach.State):
 class Finished(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Go to: Finished']) 
-    
+        self.counter = 0
+
     def execute(self, userdata):
+        global estimated_score
         signal.signal(signal.SIGINT, exit_handler)
         if(True):
+            if (self.counter == 0):
+                estimated_score = estimated_score + 10
+                self.counter = self.counter + 1
             return 'Go to: Finished'
         
 
@@ -1073,6 +1127,38 @@ class Publishers(Node):
         self.Navigator_Reset_Publisher = self.create_publisher(MasterResetSignal, 'ros_can_interface/master_reset', 10)
 
         self.get_logger().info(f"Initialised all publishers ")    
+
+class EstimatedScorePublisher(Node):
+    def __init__(self):
+        super().__init__('estimated_score_publisher')
+        self.estimated_score_publisher = self.create_publisher(Int32, 'estimated_score',10)
+        self.create_timer(1, self.estimated_score_callback)
+
+    def estimated_score_callback(self):
+        global estimated_score
+        msg = Int32()
+        msg.data = estimated_score
+        self.estimated_score_publisher.publish(msg)
+        print("estimated score", estimated_score)
+
+class CurrentTaskPublisher(Node):
+    def __init__(self):
+        super().__init__('estimated_score_publisher')
+        self.current_task_publisher = self.create_publisher(CurrentTask, 'current_task',10)
+        
+        self.create_timer(0.1, self.current_task_callback)
+
+    def current_task_callback(self):
+        global currently_doing_subtask
+        global next_task
+        msg = CurrentTask()
+        if currently_doing_subtask == None or next_task == None:
+            msg.current_task_id = -50
+            msg.currently_doing_subtask = -50
+        else:     
+            msg.current_task_id = next_task.id
+            msg.currently_doing_subtask = currently_doing_subtask
+        self.current_task_publisher.publish(msg)
 
 ########################################## SUBSCRIBERS CLASS ###############################################
     
@@ -1202,7 +1288,7 @@ class GetNextTaskPointClient(Node):
         return_to_finish_spot_checker()
         request = GetNextTaskPoint.Request()  # Create a request object
         
-        self.get_logger().info('Sending request for available tasks...')
+        self.get_logger().info('Sending request for next task point...')
         if (current_task is None):
             #here send -100 so the strategy node knows that the current_stask = None: we start the match now
             request.task_id = -100
@@ -1329,7 +1415,7 @@ class Robot_Stuck_Checker_WaitToReach(Node):
                 self.initial_test_theta = current_position.theta
                 self.first_time_entering_state = True
             else :     
-                if (current_playing_time - self.local_time) >= 5:#was 3
+                if (current_playing_time - self.local_time) >= 4:#was 3
                     if (abs(current_position.x-self.initial_test_x) < 0.3 and abs(current_position.y-self.initial_test_y) < 0.3 and abs(current_position.theta-self.initial_test_theta) < 0.3):
                         robot_stuck_wait_to_reach = True
                         self.get_logger().warn('Robot is stuck!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -1347,7 +1433,6 @@ class Robot_Stuck_Checker_WaitToReach(Node):
             self.first_time_entering_state = False
 
 ########################################## UTILITY FUNCTIONS ############################################
-
 
 
 def convert_next_task_to_nav_order(current_task: Task):
@@ -1396,28 +1481,28 @@ def order_finish_stop():
     global current_playing_time
     global TOTAL_PLAYING_TIME
     if current_playing_time >= TOTAL_PLAYING_TIME:
-        print("NEEEEEEEEEEEEEEEEEED TO STOOOOOOOP")
+        """print("NEEEEEEEEEEEEEEEEEED TO STOOOOOOOP")
         print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
         print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
-        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
+        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")"""
         send_reset_signal()
 
 def return_to_finish_spot_checker():
     global current_task
     global return_to_finish_spot_flag
     global current_playing_time
+    """print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
     print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
-    print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
-    print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+    print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")"""
     print("current_playing_time from FINIIIIIIIIIIIISH SPOTTTTT", current_playing_time)
     if current_playing_time >= (TOTAL_PLAYING_TIME - 25) and current_task.type == TaskType.BUILDING_DROPDOWN.value:
         #here im not acutally doing a dropdown task...but based on the table: a dropdown is followed by a pickup
         #and this funtion is called in moveon so if current_task is a dropdown than the next is pickup but i don't have the next task yet
         #maybe need to change it to use next_task instead
-        print("RETURN TO FINISH SPOT IS TRIGERRED BECAUSENEXT TASK IS BUILDING PICKUP!!!!!!!!!!!!!!!!!!!!!!!!")
+        """print("RETURN TO FINISH SPOT IS TRIGERRED BECAUSENEXT TASK IS BUILDING PICKUP!!!!!!!!!!!!!!!!!!!!!!!!")
         print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")"""
         return_to_finish_spot_flag = True #to disable this shit need to return it to True
 
 ########################################## SUBTASK FUNCTION  ############################################
@@ -1498,6 +1583,8 @@ def main(args=None):
     executor = MultiThreadedExecutor()
     time_counter = TimeCounter()
     robot_stuck_wait_to_reach = Robot_Stuck_Checker_WaitToReach()
+    estimated_score_node = EstimatedScorePublisher()
+    current_task__publisher_node = CurrentTaskPublisher()
     # Add nodes to the executor
     executor.add_node(clients_instance.get_next_task_point_client)
     executor.add_node(clients_instance.get_next_subtask_client)
@@ -1506,6 +1593,8 @@ def main(args=None):
     executor.add_node(subscribers_instance.lidar_obstacle_detected_subscriber)
     executor.add_node(clients_instance.delete_task_client)
     executor.add_node(time_counter)
+    executor.add_node(estimated_score_node)
+    executor.add_node(current_task__publisher_node)
     executor.add_node(robot_stuck_wait_to_reach)
     executor.add_node(subscribers_instance.jack_signal_subscriber)
     executor.add_node(subscribers_instance.init_position_subscriber)
@@ -1533,6 +1622,8 @@ def main(args=None):
         subscribers_instance.lidar_obstacle_detected_subscriber.destroy_node()
         clients_instance.delete_task_client.destroy_node()
         time_counter.destroy_node()
+        estimated_score_node.destroy_node()
+        current_task__publisher_node.destroy_node()
         robot_stuck_wait_to_reach.destroy_node()
         subscribers_instance.jack_signal_subscriber.destroy_node()
         subscribers_instance.init_position_subscriber.destroy_node()
