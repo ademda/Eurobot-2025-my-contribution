@@ -67,7 +67,7 @@ from std_srvs.srv import Empty
 servers_instance = None
 subscribers_instance = None
 enemy_position = Pose2D(x=0.0, y=0.0, theta=0.0)
-current_position = Pose2D(x=1200.0, y=275.5, theta=90.0) #initialise the current position to not get errors
+current_position = Pose2D(x=1200.0, y=195.5, theta=90.0) #initialise the current position to not get errors
 robot_color = None
 robot_current_state = 0
 current_task_id = None
@@ -455,7 +455,7 @@ subtasks_id5 = [
     MechanismSubTask(order=1,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.LOWER_PLANKS),
     NavSubTask(order=2, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=140.5, y=400.0, theta=180.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.NO),# x was 180.5
     MechanismSubTask(order=3,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.ELEVATE_PLANKS_ABOVE),
-    NavSubTask(order=4, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=400.0, y=400.0, theta=180.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),
+    NavSubTask(order=4, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=675.0, y=400.0, theta=180.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),# x was 400
 ]
 
 subtasks_id6 = [
@@ -472,7 +472,7 @@ subtasks_id7 = [
     MechanismSubTask(order=1,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.LOWER_PLANKS),
     NavSubTask(order=2, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=140.5, y=1325.0, theta=180.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.NO),
     MechanismSubTask(order=3,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.ELEVATE_PLANKS_ABOVE),
-    NavSubTask(order=4, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=400.0, y=1325.0, theta=180.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),
+    NavSubTask(order=4, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=675.0, y=1325.0, theta=180.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),
 ]
 
 subtasks_id8 = [
@@ -487,7 +487,7 @@ subtasks_id9 = [
     MechanismSubTask(order=1,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.LOWER_PLANKS),#maybe these lower planks repeated i don't need them
     NavSubTask(order=2, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2859.5, y=400.0, theta=0.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.NO),
     MechanismSubTask(order=3,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.ELEVATE_PLANKS_ABOVE),
-    NavSubTask(order=4, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2600.0, y=400.0, theta=0.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),
+    NavSubTask(order=4, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2325.0, y=400.0, theta=0.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),# x was 2600
 ]
 
 subtasks_id10 = [
@@ -502,7 +502,7 @@ subtasks_id11 = [
     MechanismSubTask(order=1,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.LOWER_PLANKS),
     NavSubTask(order=2, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2859.5, y=1325.0, theta=0.0),direction=Direction.FORWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.NO),
     MechanismSubTask(order=3,type=SubTaskType.MECHANISM_SUBTASK, mechanism_subtask_type=MachanismSubTaskType.ELEVATE_PLANKS_ABOVE),
-    NavSubTask(order=4, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2600.0, y=1325.0, theta=0.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),
+    NavSubTask(order=4, type=SubTaskType.NAV_SUBTASK, position=Pose2D(x=2325.0, y=1325.0, theta=0.0),direction=Direction.BACKWARD, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=SpeedChoice.NORMAL, angular_acceleration=SpeedChoice.NORMAL, is_with_platforms=IS_WITH_PLATFORMS.YES),
 ]
 
 subtasks_id12 = [
@@ -620,6 +620,19 @@ yellow_tasks = [
     Task(id=4, position=Pose2D(x=1226.0, y=645.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id4), # was y=675.0  
     Task(id=3, position=Pose2D(x=1100.0, y=608.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id3),     
     Task(id=6, position=Pose2D(x=1226.0, y=645.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id6),  # was y=675.0  
+    Task(id=13, position=Pose2D(x=400.0, y=1660.0, theta=float(655.0)), type=TaskType.RETURN_TO_FINISH_SPOT,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=[]),#y was 1780 x was 365            
+    Task(id=15, position=Pose2D(x=1900.0, y=608.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id15),            
+    Task(id=7, position=Pose2D(x=675.0, y=1325.0, theta=float(180.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id7),            
+]
+
+"""yellow_tasks = [
+    Task(id=0, position=Pose2D(x=1200.0, y=50.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 0,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id0),  
+    Task(id=1, position=Pose2D(x=770.0, y=560.0, theta=float(270.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id1),
+    Task(id=2, position=Pose2D(x=770.0, y=258.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id2),
+    Task(id=5, position=Pose2D(x=400.0, y=400.0, theta=float(180.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id5),  # x was x=360.0                              
+    Task(id=4, position=Pose2D(x=1226.0, y=645.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id4), # was y=675.0  
+    Task(id=3, position=Pose2D(x=1100.0, y=608.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id3),     
+    Task(id=6, position=Pose2D(x=1226.0, y=645.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id6),  # was y=675.0  
     Task(id=13, position=Pose2D(x=400.0, y=1730.0, theta=float(90.0)), type=TaskType.RETURN_TO_FINISH_SPOT,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=[]),#y was 1780 x was 365            
     Task(id=15, position=Pose2D(x=1900.0, y=608.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id15),            
     Task(id=12, position=Pose2D(x=2365.0, y=884.0, theta=float(0.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id12),            
@@ -630,7 +643,7 @@ yellow_tasks = [
     Task(id=11, position=Pose2D(x=2600.0, y=1325.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id11),
     Task(id=14, position=Pose2D(x=2230.0, y=560.0, theta=float(270.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id14),
     Task(id=16, position=Pose2D(x=831.0, y=1730.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id16)
-]
+]"""
 
 yellow_private_task = Task(id=16, position=Pose2D(x=831.0, y=1385.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id16)
 
@@ -638,6 +651,21 @@ bonus_task1 = Task(id=14, position=Pose2D(x=2230.0, y=521.7, theta=float(270.0))
 bonus_task2 = Task(id=15, position=Pose2D(x=1900.0, y=608.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id15)
 
 true_yellow_tasks = [
+    #Task(id=20, position=Pose2D(x=1196.0, y=50.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 0,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id0),  #will remove it later
+    Task(id=0, position=Pose2D(x=1196.0, y=50.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id0),  
+    Task(id=1, position=Pose2D(x=770.0, y=250.0, theta=float(270.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id1),
+    Task(id=2, position=Pose2D(x=770.0, y=69.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id2), 
+    Task(id=3, position=Pose2D(x=1101.0, y=942.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id3),
+    Task(id=4, position=Pose2D(x=1238.0, y=180.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id4),
+    Task(id=5, position=Pose2D(x=80.0, y=384.5, theta=float(180.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id5),
+    Task(id=6, position=Pose2D(x=1226.0, y=350.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id6),
+    Task(id=13, position=Pose2D(x=400.0, y=1730.0, theta=float(655.0)), type=TaskType.RETURN_TO_FINISH_SPOT,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=[]),#y was 1780 x was 365            
+    Task(id=15, position=Pose2D(x=1920.0, y=950.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id15),
+    Task(id=7, position=Pose2D(x=80.0, y=1315.0, theta=float(180.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id7),
+]
+
+
+"""true_yellow_tasks = [
     #Task(id=20, position=Pose2D(x=1196.0, y=50.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 0,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id0),  #will remove it later
     Task(id=0, position=Pose2D(x=1196.0, y=50.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id0),  
     Task(id=1, position=Pose2D(x=770.0, y=250.0, theta=float(270.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id1),
@@ -656,13 +684,27 @@ true_yellow_tasks = [
     Task(id=14, position=Pose2D(x=2216.0, y=250.0, theta=float(270.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id14),
     Task(id=15, position=Pose2D(x=1920.0, y=950.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id15),
     Task(id=16, position=Pose2D(x=831.0, y=1385.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id16)
-]
+]"""
 
 #here based on the trobot color i should change the true tasks
 
 # i need to handle if the task is empty
 #blue
 blue_tasks = [
+    Task(id=20, position=Pose2D(x=1800.0, y=50.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 0,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id20),  
+    Task(id=14, position=Pose2D(x=2230.0, y=560.0, theta=float(270.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id14),# y was 521.7
+    Task(id=22, position=Pose2D(x=2230.0, y=258.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id22),     
+    Task(id=9, position=Pose2D(x=2600.0, y=400.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id9),# x was 2640.0    
+    Task(id=24, position=Pose2D(x=1774.0, y=645.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id24),
+    Task(id=15, position=Pose2D(x=1900.0, y=608.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id15),                    
+    Task(id=26, position=Pose2D(x=1774.0, y=645.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id26),        
+    Task(id=33, position=Pose2D(x=2680.0, y=1660.0, theta=float(655.0)), type=TaskType.RETURN_TO_FINISH_SPOT,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=[]),               
+    Task(id=3, position=Pose2D(x=1100.0, y=608.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id3),    
+    Task(id=11, position=Pose2D(x=2325.0, y=1325.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id11),
+
+]
+
+"""blue_tasks = [
     Task(id=20, position=Pose2D(x=1800.0, y=50.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 0,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id20),  
     Task(id=14, position=Pose2D(x=2230.0, y=560.0, theta=float(270.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id14),# y was 521.7
     Task(id=22, position=Pose2D(x=2230.0, y=258.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.YES, subtask_list=subtasks_id22),     
@@ -680,7 +722,7 @@ blue_tasks = [
     Task(id=7, position=Pose2D(x=400.0, y=1325.0, theta=float(180.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id7),    
     Task(id=1, position=Pose2D(x=770.0, y=560.0, theta=float(270.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id1),
     Task(id=36, position=Pose2D(x=2169.0, y=1385.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration=1, angular_acceleration=1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id36)
-]
+]"""
 
 """blue_tasks = [
     Task(id=20, position=Pose2D(x=1800.0, y=50.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 0,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id20),  
@@ -705,6 +747,20 @@ blue_tasks = [
 
 true_blue_tasks = [
     Task(id=20, position=Pose2D(x=1800.0, y=50.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id20),  
+    Task(id=22, position=Pose2D(x=2230.0, y=69.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id20), 
+    Task(id=3, position=Pose2D(x=1101.0, y=942.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id3),
+    Task(id=24, position=Pose2D(x=1774.0, y=180.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id24),
+    Task(id=26, position=Pose2D(x=1774.0, y=350.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id26),
+    Task(id=9, position=Pose2D(x=2930.0, y=403.5, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id9),
+    Task(id=33, position=Pose2D(x=2680.0, y=1730.0, theta=float(655.0)), type=TaskType.RETURN_TO_FINISH_SPOT,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.NORMAL, linear_acceleration = 1,angular_acceleration = 1, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=[]),           
+    Task(id=14, position=Pose2D(x=2216.0, y=250.0, theta=float(270.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id14),
+    Task(id=15, position=Pose2D(x=1920.0, y=950.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id15),
+    Task(id=11, position=Pose2D(x=2934.0, y=1315.0, theta=float(0.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id11),
+]
+
+
+"""true_blue_tasks = [
+    Task(id=20, position=Pose2D(x=1800.0, y=50.0, theta=float(655.0)), type=TaskType.BONDEROLE_POSE,direction=Direction.BACKWARD, score=TaskTypeScore.BONDEROLE_POSE, linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id20),  
     Task(id=1, position=Pose2D(x=770.0, y=250.0, theta=float(270.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id1),
     Task(id=22, position=Pose2D(x=2230.0, y=69.0, theta=float(270.0)), type=TaskType.BUILDING_DROPDOWN,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id20), 
     Task(id=3, position=Pose2D(x=1101.0, y=942.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP,linear_velocity=SpeedChoice.NORMAL, angular_velocity=SpeedChoice.SLOW, linear_acceleration = 1,angular_acceleration = 0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id3),
@@ -722,7 +778,7 @@ true_blue_tasks = [
     Task(id=15, position=Pose2D(x=1920.0, y=950.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP, direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id15),
     Task(id=36, position=Pose2D(x=2169.0, y=1730.0, theta=float(90.0)), type=TaskType.BUILDING_PICKUP,direction=Direction.FORWARD, score=TaskTypeScore.BUILDING_PICKUP, linear_velocity=SpeedChoice.SLOW, angular_velocity=SpeedChoice.SLOW, linear_acceleration=0, angular_acceleration=0, is_with_platforms=IS_WITH_PLATFORMS.NO, subtask_list=subtasks_id36)
 ]
-
+"""
 
 ###################################### OBSTACLES LISTS ####################################
 

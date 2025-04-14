@@ -195,6 +195,10 @@ def command_mechanism(next_subtask):
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value and mechanism_state.bonderole_servo_state != MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value):
         mechanism_instance.release_bonderole_servo()
         mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value
+        mechanism_instance.hold_cans()
+        mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS        
+        mechanism_instance.deploy_forklift()
+        mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value and mechanism_state.bonderole_servo_state != MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value):
         mechanism_instance.hold_bonderole_servo()        
         mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value    
@@ -265,9 +269,10 @@ def convert_subtask_to_nav_message(subtask: SubTaskMsg, response: GetNextSubTask
         response.nav_linear_velocity_choice = subtask.nav_linear_velocity_choice
         response.nav_angular_velocity_choice = subtask.nav_angular_velocity_choice
         response.nav_linear_acceleration_choice = subtask.nav_linear_acceleration_choice
-        response.nav_linear_acceleration_choice = subtask.nav_angular_acceleration_choice
+        response.nav_angular_acceleration_choice = subtask.nav_angular_acceleration_choice
         response.nav_is_with_platforms = subtask.nav_is_with_platforms
         return response
+
 
 def main(args=None):
     global clients_instance
@@ -279,22 +284,61 @@ def main(args=None):
     #clients_instance.get_available_tasks_client.send_request()
     mechanism_state = MechanismState()
     mechanism_instance = FirstMechanism()
-    mechanism_instance.deploy_forklift()
+    """mechanism_instance.deploy_forklift()
     mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS
+    print("deployed forklift")
     mechanism_instance.hold_cans()
-    mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS
-    mechanism_instance.hold_bonderole_servo()
-    mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD
-    ######################### ATTENTION #############################
-    #I need to deploy the forklift and grab cans only after the match starts...
-    #or after the bonderoe pose starts
-    #################################################################
+    mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS"""
     rclpy.spin(servers_instance.get_next_subtask_service)
     #rclpy.spin(clients_instance.get_available_tasks_client) here i don't need to spib the client 
     #because it is invoked by the get_next_subtask_service node
     clients_instance.get_available_tasks_client.destroy_node()
     servers_instance.get_next_subtask_service.destroy_node()
+    mechanism_instance.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
+
+
+
+"""def main(args=None):
+    global clients_instance
+    global servers_instance
+    global subscribers_instance
+    global mechanism_instance
+    global mechanism_state
+
+    rclpy.init(args=args)
+    communication_instances_init()
+
+    mechanism_state = MechanismState()
+    mechanism_instance = FirstMechanism()
+    mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD
+    # Create a dedicated executor for the GetNextSubTaskService node
+    subtask_service_executor = rclpy.executors.SingleThreadedExecutor()
+    subtask_service_executor.add_node(servers_instance.get_next_subtask_service)
+
+    # Run the GetNextSubTaskService executor in a separate thread
+    subtask_service_thread = threading.Thread(target=subtask_service_executor.spin, daemon=True)
+    subtask_service_thread.start()
+
+    # Run other nodes in a different executor
+    other_executor = MultiThreadedExecutor()
+    other_executor.add_node(subscribers_instance.jack_state_subscriber)
+
+    try:
+        other_executor.spin()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # Shutdown both executors and destroy nodes
+        other_executor.shutdown()
+        subtask_service_executor.shutdown()
+        mechanism_instance.destroy_node()
+        subscribers_instance.jack_state_subscriber.destroy_node()
+        servers_instance.get_next_subtask_service.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()"""
