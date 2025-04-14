@@ -429,7 +429,7 @@ class MoveOn(smach.State):
         #print(f"nav_angular_acceleration_choice: {next_task.angular_acceleration}")
         nav_order = convert_next_task_to_nav_order(next_task)
         if next_task.type == TaskType.RETURN_TO_FINISH_SPOT.value : 
-            while current_playing_time < 90:
+            while current_playing_time < 91: # was 90
                 time.sleep(0.5)
                 print("waiting for PAMIS to leave")
 
@@ -873,12 +873,13 @@ class Bonderole_Pose_MoveOn(smach.State):
         order_finish_stop()
         response = get_next_subtask()
         if (response.current_subtask_order == -1):
-            estimated_score = estimated_score + 20
+            #estimated_score = estimated_score + 20
             clients_instance.delete_task_client.send_request(current_task.id)
             return 'Go to: MoveOn'
         
         elif(response.nav_target_x == 0.0 and response.nav_target_y == 0.0):
             #wait_mechanism_mouvement()
+            estimated_score = estimated_score + 20
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_DestinationReached_en
             next_subtask_order = current_subtask_order + 1 
             return 'Go to: Bonderole_Pose_DestinationReached'
@@ -1035,6 +1036,7 @@ class SuddenStop(smach.State):
         global MASTER_SMachineCurrentState_en
         global current_navigator_state
         send_stop_signal()
+        order_finish_stop()
         time.sleep(0.5) #added it so we don't loop too fast  
         if(current_navigator_state == 6 or current_navigator_state == 7):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorConfirmedStop_en
@@ -1055,7 +1057,7 @@ class WaitSuddenStop(smach.State):
         global MASTER_SMachineCurrentState_en
         global MASTER_CurrentNavigatorState_en
         time.sleep(0.05)
-
+        order_finish_stop()
         # Check if the current navigator state is confirmed stop
         if current_navigator_state == 7:
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorConfirmedStop_en
@@ -1081,6 +1083,7 @@ class ConfirmedStop(smach.State):
         global currently_doing_subtask
         global lidar_obstacle_detected
         time.sleep(0.05)
+        order_finish_stop()
         if(not lidar_obstacle_detected):
             if currently_doing_subtask == TaskType.NORMAL_NAV.value:
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
@@ -1105,10 +1108,12 @@ class Finished(smach.State):
 
     def execute(self, userdata):
         global estimated_score
+        order_finish_stop()
         signal.signal(signal.SIGINT, exit_handler)
         if(True):
             if (self.counter == 0):
-                estimated_score = estimated_score + 10
+                #estimated_score = estimated_score + 10
+                #here i removed encrimenting the score because i will do it in wait to reach when the robot is close to the position
                 self.counter = self.counter + 1
             return 'Go to: Finished'
         
@@ -1133,9 +1138,15 @@ class EstimatedScorePublisher(Node):
         super().__init__('estimated_score_publisher')
         self.estimated_score_publisher = self.create_publisher(Int32, 'estimated_score',10)
         self.create_timer(1, self.estimated_score_callback)
+        self.return_to_finish_spot_incrementing_counter = 0
 
     def estimated_score_callback(self):
         global estimated_score
+        need_to_incerement_score = increment_score_returned_to_finish_spot_checker()
+        if need_to_incerement_score == True and self.return_to_finish_spot_incrementing_counter == 0 :
+            estimated_score = estimated_score + 10
+            self.return_to_finish_spot_incrementing_counter = self.return_to_finish_spot_incrementing_counter + 1
+
         msg = Int32()
         msg.data = estimated_score
         self.estimated_score_publisher.publish(msg)
@@ -1373,6 +1384,7 @@ class GetNextSubTaskPointClient(Node):
                 return None      
 
 ########################################## TIMER CLASS ############################################
+
 class TimeCounter(Node):
     def __init__(self):
         super().__init__('time_counter')
@@ -1387,7 +1399,6 @@ class TimeCounter(Node):
             print("playing time",current_playing_time)
         
     
-
 class Robot_Stuck_Checker_WaitToReach(Node):
     def __init__(self):
         super().__init__('robot_stuck_checker_wait_to_reach')
@@ -1415,7 +1426,7 @@ class Robot_Stuck_Checker_WaitToReach(Node):
                 self.initial_test_theta = current_position.theta
                 self.first_time_entering_state = True
             else :     
-                if (current_playing_time - self.local_time) >= 4:#was 3
+                if (current_playing_time - self.local_time) >= 3:#was 4
                     if (abs(current_position.x-self.initial_test_x) < 0.3 and abs(current_position.y-self.initial_test_y) < 0.3 and abs(current_position.theta-self.initial_test_theta) < 0.3):
                         robot_stuck_wait_to_reach = True
                         self.get_logger().warn('Robot is stuck!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -1434,6 +1445,14 @@ class Robot_Stuck_Checker_WaitToReach(Node):
 
 ########################################## UTILITY FUNCTIONS ############################################
 
+def increment_score_returned_to_finish_spot_checker():
+    global current_position
+    global estimated_score
+    global next_task
+    if ((current_position.x >= 2400.0 or current_position.x <= 600.0 ) and current_position.y >= 1400.0 and next_task.type == TaskType.RETURN_TO_FINISH_SPOT.value):#y was 1500
+        return True
+    else :
+        return False
 
 def convert_next_task_to_nav_order(current_task: Task):
     nav_order = MasterNavigationMessage()
