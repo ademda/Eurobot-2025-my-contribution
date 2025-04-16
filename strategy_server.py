@@ -70,21 +70,23 @@ available_tasks = []
 #tasks_list=[2, 5, 8, 9] #based on task id 2, 5, 8, 9
 
 blue_prohibited_zones = [
-   [0, 1550, 1950, 2000],   
+   [0, 1550, 1950, 2000],  
+   [1950,1790,2360,2000],
     [2550, 650, 3000, 1100],     
    [550, 0, 1000, 150]  ,
     [1000, 0, 1450, 450]  ,
     [2550, 0, 3000, 150]  ,
-    			    
+         
 ]
 #blue prohibited zones : zones taht blue shouldn't go to
 yellow_prohibited_zones = [
     [1050, 1550, 3000, 2000],   
-    [0, 650, 460, 1100],     
+    [0, 650, 460, 1100],    
+    [650,1790,1050,2000],
     [0, 0, 450, 150]  ,
     [1560, 0, 2000, 450]  ,
     [2005, 0, 2450, 150]  ,
-    			    
+         
 ]
 
 ##yellow prohibited zones : zones taht yellow shouldn't go to

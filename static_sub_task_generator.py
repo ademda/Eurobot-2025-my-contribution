@@ -93,7 +93,7 @@ class GetNextSubTaskService(Node):
         print(request.current_task_id)
         current_index = request.current_subtask_order
 
-        if 0 <= current_index < len(current_task.subtask_list):
+        if 0 <= current_index < len(current_task.subtask_list):#here need to add edge case of if the task is removed when i strated the tes.current task doesnt exist
             next_subtask = current_task.subtask_list[current_index]
             print(f"Next subtask: {next_subtask}")
             if (next_subtask.type == SubTaskType.NAV_SUBTASK.value):
