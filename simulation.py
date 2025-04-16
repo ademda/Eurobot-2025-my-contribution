@@ -6,18 +6,17 @@ from ros_custom_messages.msg import MasterNavigationMessage, MasterStopSignal, N
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from geometry_msgs.msg import Point
 from ros_custom_messages.srv import GetMapState
-from ros_custom_messages.msg import ObstacleMsg, TaskMsg
+from ros_custom_messages.msg import ObstacleMsg, TaskMsg, PathMsg 
+from geometry_msgs.msg import Pose2D
 
 robot_current_state = 0
 
-# Map and robot dimensions in millimeters
 MAP_LENGTH_MM = 3000
 MAP_WIDTH_MM = 2000
 ROBOT_LENGTH_MM = 230
 ROBOT_WIDTH_MM = 370
 ENEMY_ROBOT_RADUIS = 175
 
-# Scaling factors to fit the map into a window
 WINDOW_LENGTH_PX = 1080
 WINDOW_WIDTH_PX = 720
 SCALE_X = WINDOW_LENGTH_PX / MAP_LENGTH_MM
@@ -50,6 +49,10 @@ class RobotSimulation(Node):
             MasterStopSignal, 'ros_can_interface/stop_signal', self.stop_callback, 10
         )
 
+        self.rrt_path_subscriber = self.create_subscription(
+            PathMsg, 'strategy_rrt_path', self.rrt_path_callback, 10
+        )
+
         self.map_state_client = self.create_client(GetMapState, 'get_map_state_service')
         while not self.map_state_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().warn('Waiting for get_map_state_service...')
@@ -66,6 +69,8 @@ class RobotSimulation(Node):
         self.obstacles = []
         self.true_tasks = []
 
+        self.rrt_path = []  # <--- NEW
+
         self.robot_x = 0.0
         self.robot_y = 0.0
         self.robot_angle = 0.0
@@ -73,6 +78,12 @@ class RobotSimulation(Node):
         self.stop_signal_received = False
 
         self.get_logger().info("Robot simulation node initialized.")
+
+    def rrt_path_callback(self, msg):
+        self.rrt_path = msg.path
+        self.get_logger().info(f"Received RRT path with {len(self.rrt_path)} waypoints.")
+        for waypoint in self.rrt_path:
+            self.get_logger().info(f"Waypoint: X={waypoint.x}, Y={waypoint.y}, Theta={waypoint.theta}")
 
     def request_map_state(self):
         request = GetMapState.Request()
@@ -149,8 +160,10 @@ def main(args=None):
     map_image = pygame.image.load("map.png")
     map_image = pygame.transform.scale(map_image, (WINDOW_LENGTH_PX, WINDOW_WIDTH_PX))
 
-    robot_image = pygame.image.load("robot.png")
-    robot_image = pygame.transform.scale(robot_image, (ROBOT_LENGTH_PX, ROBOT_WIDTH_PX))
+    robot_surface = pygame.Surface((ENEMY_ROBOT_RADUIS_PX * 2, ENEMY_ROBOT_RADUIS_PX * 2), pygame.SRCALPHA)
+    pygame.draw.circle(robot_surface, (238, 130, 238, 200),
+                       (ENEMY_ROBOT_RADUIS_PX, ENEMY_ROBOT_RADUIS_PX),
+                       ENEMY_ROBOT_RADUIS_PX)
 
     enemy_surface = pygame.Surface((ENEMY_ROBOT_RADUIS_PX * 2, ENEMY_ROBOT_RADUIS_PX * 2), pygame.SRCALPHA)
     pygame.draw.circle(enemy_surface, (255, 165, 0, 200),
@@ -175,9 +188,8 @@ def main(args=None):
         robot_x_px = int(robot_simulation_node.robot_x * SCALE_X)
         robot_y_px = int(axis_conversion(robot_simulation_node.robot_y) * SCALE_Y)
 
-        rotated_robot = pygame.transform.rotate(robot_image, robot_simulation_node.robot_angle)
-        robot_rect = rotated_robot.get_rect(center=(robot_x_px, robot_y_px))
-        screen.blit(rotated_robot, robot_rect)
+        robot_rect = robot_surface.get_rect(center=(robot_x_px, robot_y_px))
+        screen.blit(robot_surface, robot_rect)
 
         if hasattr(robot_simulation_node, 'enemy_x') and hasattr(robot_simulation_node, 'enemy_y'):
             enemy_x_px = int(robot_simulation_node.enemy_x * SCALE_X)
@@ -208,6 +220,19 @@ def main(args=None):
             true_task_x_px = int(true_task.position.x * SCALE_X)
             true_task_y_px = int(axis_conversion(true_task.position.y) * SCALE_Y)
             screen.blit(true_task_surface, (true_task_x_px - 10, true_task_y_px - 10))
+
+        # Draw RRT Path
+        if robot_simulation_node.rrt_path and len(robot_simulation_node.rrt_path) >= 2:
+            for i in range(len(robot_simulation_node.rrt_path) - 1):
+                start = robot_simulation_node.rrt_path[i]
+                end = robot_simulation_node.rrt_path[i + 1]
+
+                start_x = int(start.x * SCALE_X)
+                start_y = int(axis_conversion(start.y) * SCALE_Y)
+                end_x = int(end.x * SCALE_X)
+                end_y = int(axis_conversion(end.y) * SCALE_Y)
+
+                pygame.draw.line(screen, (255, 0, 0), (start_x, start_y), (end_x, end_y), 3)
 
         pygame.display.flip()
         clock.tick(30)
