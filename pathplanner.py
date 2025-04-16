@@ -65,13 +65,13 @@ class PathPlanner:
     def can_go_directly_to_target(self, current_position : Pose2D, task_position : Pose2D, map_obstacles : List[Pose2D], enemy_robot_position : Pose2D) -> bool:
         for obstacle in map_obstacles:
             # Pour chaque obstacle, vérifie si le chemin direct est valide et si la position de la tâche n'est pas égale à celle de l'obstacle
-            if ( (not self.is_valid_path(current_position, task_position,obstacle, enemy_radius)) and 
+            if ( (not self.is_valid_path(current_position, task_position,obstacle, obstacle_radius)) and 
                 (task_position.x != obstacle.x and task_position.y != obstacle.y) ):
 
                 return False
         
         # Vérifie également si le chemin direct vers le robot ennemi est valide
-        if not self.is_valid_path(current_position, task_position, enemy_robot_position, enemy_raduis):         
+        if not self.is_valid_path(current_position, task_position, enemy_robot_position, enemy_radius):         
             return False
         
         return True
@@ -118,34 +118,35 @@ class PathPlanner:
 
         print("start:", start)
         print("goal:", goal)
-        print("obstacles:", obstacles)
+        #print("obstacles:", obstacles)
 
         # Use self.prohibited_zones here
         final_path=[]
 
-        #if (self.can_go_directly_to_target(current_position,target_position,obstacles_position,enemy_robot_position)):
+        if (self.can_go_directly_to_target(current_position,target_position,obstacles_position,enemy_robot_position)):
+           final_path.append(current_position)#adem:zedtha ana hedhi
+           final_path.append(target_position)
+           print("direct path from can_go _directly_to_target!!!!!!!!!!!!!!!!!!")
+        else: 
+            path_result = self.find_path_coordinates(start, goal, dimensions, robot_radius_reduced, obsdim, obstacles, enemy_robot_position_rrt)
 
-         #  final_path.append(target_position)
-        #else: 
-        path_result = self.find_path_coordinates(start, goal, dimensions, robot_radius_reduced, obsdim, obstacles, enemy_robot_position_rrt)
+            if path_result is None:
+                pose = Pose2D()
+                pose.x = -1.0
+                pose.y = -1.0
+                pose.theta = 0.0
+                return [pose]
 
-        if path_result is None:
-            pose = Pose2D()
-            pose.x = -1.0
-            pose.y = -1.0
-            pose.theta = 0.0
-            return [pose]
-
-        for i in range(len(path_result) - 1):  # Parcours jusqu'à l'avant-dernière case
-            path_segment = path_result[i]
-            pose = Pose2D()
-            pose.x = float(path_segment[0]) * 4
-            pose.y = float(path_segment[1]) * 4
-            pose.theta = 655.0
-            print(pose)
-            final_path.append(pose)
-        final_path.append(target_position)
-        print(target_position)
+            for i in range(len(path_result) - 1):  # Parcours jusqu'à l'avant-dernière case
+                path_segment = path_result[i]
+                pose = Pose2D()
+                pose.x = float(path_segment[0]) * 4
+                pose.y = float(path_segment[1]) * 4
+                pose.theta = 655.0
+                print(pose)
+                final_path.append(pose)
+            final_path.append(target_position)
+        #print("target position",target_position)
             
         return final_path
 
