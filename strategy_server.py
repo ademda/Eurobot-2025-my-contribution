@@ -42,7 +42,8 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from ros_custom_messages.srv import GetMapState
 from enum import Enum
-from ros_custom_messages.msg import TaskMsg, ObstacleMsg
+from typing import List
+from ros_custom_messages.msg import TaskMsg, ObstacleMsg, PathMsg  
 from ros_custom_messages.srv import GetNextTaskPoint
 from strategy.static_task_generator import Task, SpeedChoice, TaskType
 from path_planning.pathplanner import PathPlanner
@@ -127,7 +128,15 @@ class Clients():
     def __init__(self):
         self.get_map_state_client = GetMapStateClient()
 
+class Publishers():
+    def __init__(self):
+        self.strategy_rrt_path_publisher = StrategyRRTPathPublisher()
 
+class StrategyRRTPathPublisher(Node):
+    def __init__(self):
+        super().__init__('strategy_rrt_path_publisher')
+        self.strategy_rrt_path_publisher = self.create_publisher(PathMsg, 'strategy_rrt_path', 10)
+        self.get_logger().info('StrategyRRTPathPublisher node has been started.')
 class Navigator_Receive_Position_Subscriber(Node):
     def __init__(self):
         super().__init__('strategy_navigator_receive_position_subscriber')
@@ -253,6 +262,7 @@ class GetNextTaskPointService(Node):
         global obstacle_positions
         global current_position
         global enemy_position
+        global publishers_instance
         self.get_logger().info('Got a request about next task... Now sending a response')
         get_map_state()
         #next_task = get_next_task(request.task_id) #heer i changed to returning the next
@@ -282,6 +292,8 @@ class GetNextTaskPointService(Node):
             if (rrt_failure_flag.x == -1 and rrt_failure_flag.y == -1 and rrt_failure_flag.theta == 0):
                 print("IMPOSSIBLE TO REACH THE TARGET")
                 response = convert_intermediate_point_to_response_msg(rrt_failure_flag, response, next_task)
+                path_msg=convert_path_to_path_msg(path)
+                publishers_instance.strategy_rrt_path_publisher.strategy_rrt_path_publisher.publish(path_msg)
                 return response
                 #here i should return the flag not the intermediate point i got an error
                 ########HEEEEEEEERE I NEED TO EDGE CASE THIS ONE....I STILL DIDN'T FIGURE OUT HOW TO DO IT
@@ -305,10 +317,14 @@ class GetNextTaskPointService(Node):
                 print(f"nav_linear_acceleration_choice: {response.nav_linear_acceleration_choice}")
                 print(f"nav_angular_acceleration_choice: {response.nav_angular_acceleration_choice}")"""
                 # Return the response (no need to reassign the response variable)
+                path_msg=convert_path_to_path_msg(path)
+                publishers_instance.strategy_rrt_path_publisher.strategy_rrt_path_publisher.publish(path_msg)
                 return response  
         else:
             #print("intermediate_point heeeeeeere", intermediate_point)
             response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
+            path_msg=convert_path_to_path_msg(path)
+            publishers_instance.strategy_rrt_path_publisher.strategy_rrt_path_publisher.publish(path_msg)
             # Convert the task to the response message format
             """print(next_task.id)
             print(next_task.type)
@@ -333,11 +349,20 @@ def communication_instances_init():
     global clients_instance
     global servers_instance
     global subscribers_instance
+    global publishers_instance
     clients_instance = Clients()
     servers_instance = Services()
     subscribers_instance = Subscribers()
+    publishers_instance = Publishers()
     
 ################## UTILITY FUNCTIONS ###################
+
+def convert_path_to_path_msg(path: List[Pose2D]):
+    path_msg = PathMsg()
+    for point in path:
+        pose = Pose2D(x=point.x, y=point.y, theta=point.theta)  # Directly using Pose2D attributes
+        path_msg.path.append(pose)
+    return path_msg
 
 def get_path_from_rrt(start_pos, goal_pos, obstacles_position, enemy_robot_position):    
     global path_planner_instance
@@ -436,6 +461,7 @@ def main(args=None):
 
     # Add both nodes to the executor
     executor.add_node(subscribers_instance.strategy_my_robot_color)
+    executor.add_node(publishers_instance.strategy_rrt_path_publisher)
     executor.add_node(servers_instance.get_next_task_point_service)
     executor.add_node(clients_instance.get_map_state_client)
     executor.add_node(subscribers_instance.strategy_navigator_receive_position_subscriber)
@@ -450,6 +476,7 @@ def main(args=None):
 
     # Clean up
     strategy_instance.destroy_node()
+    publishers_instance.strategy_rrt_path_publisher.destroy_node()
     servers_instance.get_next_task_point_service.destroy_node()
     clients_instance.get_map_state_client.destroy_node()
     subscribers_instance.strategy_enemy_robot_position_subscriber.destroy_node()
