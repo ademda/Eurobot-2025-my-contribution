@@ -128,7 +128,7 @@ we use them to transition between states
     """
 ##################################### GLOBAL VARIABLES ####################################
 ####GLOBAL VARIABLES#####
-TOTAL_PLAYING_TIME = 100 #in seconds 40 just for test need to return it to 100
+TOTAL_PLAYING_TIME = 1000 #was 100 1000 for simulation#in seconds 40 just for test need to return it to 100
 publishers_instance = None
 subscribers_instance = None
 clients_instance = None
@@ -385,7 +385,7 @@ class WaitForSignal(smach.State):
         print(jack_state)
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.1)
-        if(MASTER_CurrentNavigatorState_en == MASTER_NavigatorStates_ten.MASTER_NavigatorReady_en and jack_state == True):
+        if(MASTER_CurrentNavigatorState_en == MASTER_NavigatorStates_ten.MASTER_NavigatorReady_en ):#and jack_state == True
             #time.sleep(1) #Maybe i need to add the sleep function 
             return 'Go to: MoveOn'
         else:
@@ -428,8 +428,12 @@ class MoveOn(smach.State):
         #print(f"nav_linear_acceleration_choice: {next_task.linear_acceleration}")
         #print(f"nav_angular_acceleration_choice: {next_task.angular_acceleration}")
         nav_order = convert_next_task_to_nav_order(next_task)
+        if(nav_order.nav_target_x == -1):
+            print("Impossible Point")
+            return 'Go to: MoveOn'
+        
         if next_task.type == TaskType.RETURN_TO_FINISH_SPOT.value : 
-            while current_playing_time < 91: # was 90
+            while current_playing_time < 160: # was 90 # was 91 before simulation
                 time.sleep(0.5)
                 print("waiting for PAMIS to leave")
 
@@ -1394,9 +1398,11 @@ class TimeCounter(Node):
     def time_callback(self):
         global jack_state
         global current_playing_time
-        if jack_state == True:
+        """if jack_state == True:
             current_playing_time += 1
-            print("playing time",current_playing_time)
+            print("playing time",current_playing_time)"""
+        current_playing_time += 1
+        print("playing time",current_playing_time)
         
     
 class Robot_Stuck_Checker_WaitToReach(Node):
@@ -1426,7 +1432,7 @@ class Robot_Stuck_Checker_WaitToReach(Node):
                 self.initial_test_theta = current_position.theta
                 self.first_time_entering_state = True
             else :     
-                if (current_playing_time - self.local_time) >= 3:#was 4
+                if (current_playing_time - self.local_time) >= 60:#was 4 #shouuld return it to 3 used 60 for simulation
                     if (abs(current_position.x-self.initial_test_x) < 0.3 and abs(current_position.y-self.initial_test_y) < 0.3 and abs(current_position.theta-self.initial_test_theta) < 0.3):
                         robot_stuck_wait_to_reach = True
                         self.get_logger().warn('Robot is stuck!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -1526,7 +1532,7 @@ def return_to_finish_spot_checker():
 
 ########################################## SUBTASK FUNCTION  ############################################
 
-def get_next_subtask():#
+def get_next_subtask():
     global clients_instance
     response = clients_instance.get_next_subtask_client.send_request()
     """
