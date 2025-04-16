@@ -23,7 +23,8 @@ Functions:
 
 """
 import rclpy
-from mecanisme.mechanism_1 import FirstMechanism
+import time
+#from mecanisme.mechanism_1 import FirstMechanism
 from rclpy.node import Node
 from enum import Enum
 from geometry_msgs.msg import Pose2D
@@ -178,29 +179,42 @@ def command_mechanism(next_subtask):
     global mechanism_state
     if (next_subtask.mechanism_subtask_type == MachanismSubTaskType.GRAB_CANS.value and mechanism_state.cans_state != MachanismSubTaskType.GRAB_CANS.value):
         print("NOOOOOOW DOIIIIING hold cans subtask")
-        mechanism_instance.hold_cans()
+        #mechanism_instance.hold_cans()
+        time.sleep(1)
         mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS.value
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.DROP_CANS.value and mechanism_state.cans_state != MachanismSubTaskType.DROP_CANS.value):
-        mechanism_instance.place_first_cans()
+        #mechanism_instance.place_first_cans()
+        print("NOOOOOOW DOIIIIING place_first_cans subtask")
+        time.sleep(1)
         mechanism_state.cans_state = MachanismSubTaskType.DROP_CANS.value
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.ELEVATE_PLANKS_ABOVE.value and mechanism_state.fork_lift_state != MachanismSubTaskType.ELEVATE_PLANKS_ABOVE.value):
-        mechanism_instance.lift_planks()
+        #mechanism_instance.lift_planks()
+        print("NOOOOOOW DOIIIIING lift planks subtask")
+        time.sleep(1)
         mechanism_state.fork_lift_state = MachanismSubTaskType.ELEVATE_PLANKS_ABOVE.value
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.ELEVATE_PLANKS_ALOT.value and mechanism_state.fork_lift_state != MachanismSubTaskType.ELEVATE_PLANKS_ALOT.value):
-        mechanism_instance.lift_planks_alot()
+        #mechanism_instance.lift_planks_alot()
+        print("NOOOOOOW DOIIIIING lift planks alot subtask")
+        time.sleep(1)
         mechanism_state.fork_lift_state = MachanismSubTaskType.ELEVATE_PLANKS_ALOT.value    
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.LOWER_PLANKS.value and mechanism_state.fork_lift_state != MachanismSubTaskType.LOWER_PLANKS.value):
-        mechanism_instance.place_first_plank_and_pick_last_cans()
+        #mechanism_instance.place_first_plank_and_pick_last_cans()
+        print("NOOOOOOW DOIIIIING lower planks alot subtask")
+        time.sleep(1)
         mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS.value
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value and mechanism_state.bonderole_servo_state != MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value):
-        mechanism_instance.release_bonderole_servo()
+        #mechanism_instance.release_bonderole_servo()
         mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value
-        mechanism_instance.hold_cans()
+        #mechanism_instance.hold_cans()
         mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS        
-        mechanism_instance.deploy_forklift()
+        #mechanism_instance.deploy_forklift()
         mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS
+        print("NOOOOOOW DOIIIIING release_bonderole_servo subtask and initialising forklift and cans")
+        time.sleep(1)
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value and mechanism_state.bonderole_servo_state != MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value):
-        mechanism_instance.hold_bonderole_servo()        
+        #mechanism_instance.hold_bonderole_servo()        
+        print("NOOOOOOW DOIIIIING hold_bonderole_servo")
+        time.sleep(1)
         mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value    
     else:
         print("Error: Mechanism subtask type not recognized")
@@ -283,7 +297,7 @@ def main(args=None):
     communication_instances_init()
     #clients_instance.get_available_tasks_client.send_request()
     mechanism_state = MechanismState()
-    mechanism_instance = FirstMechanism()
+    #mechanism_instance = FirstMechanism()
     """mechanism_instance.deploy_forklift()
     mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS
     print("deployed forklift")
@@ -294,7 +308,7 @@ def main(args=None):
     #because it is invoked by the get_next_subtask_service node
     clients_instance.get_available_tasks_client.destroy_node()
     servers_instance.get_next_subtask_service.destroy_node()
-    mechanism_instance.destroy_node()
+    #mechanism_instance.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
