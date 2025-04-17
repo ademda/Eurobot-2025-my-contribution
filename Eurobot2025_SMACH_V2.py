@@ -411,6 +411,7 @@ class MoveOn(smach.State):
         global currently_doing_subtask 
         global return_to_finish_spot_flag
         global current_playing_time
+        global publishers_instance
         current_subtask_order = 0
         next_subtask_order = 0
         order_finish_stop()
@@ -457,7 +458,9 @@ class MoveOn(smach.State):
         elif (current_navigator_state == 2):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_WaitToReach_en
+            publishers_instance.Current_Direction_Publisher.publish(Bool(data=next_task.direction))
             return 'Go to: WaitToReach'
+            
         else:
             return 'Go to: MoveOn'
 
@@ -585,6 +588,7 @@ class Building_PickUp_MoveOn(smach.State):
         global next_subtask_order
         global clients_instance
         global return_to_finish_spot_flag
+        global publishers_instance
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
@@ -610,6 +614,7 @@ class Building_PickUp_MoveOn(smach.State):
 
         elif(response.nav_target_x != 0.0 or response.nav_target_y != 0.0): 
             nav_order = convert_next_subtask_to_nav_order(response)
+            print("Nav Roder Details: direction", response.nav_is_forward)
             send_target_order(nav_order)
             time.sleep(communication_wait_time)  
             if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
@@ -625,6 +630,7 @@ class Building_PickUp_MoveOn(smach.State):
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_WaitToReach_en
                 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
                 next_subtask_order = current_subtask_order + 1 
+                publishers_instance.Current_Direction_Publisher.publish(Bool(data=response.nav_is_forward))
                 return 'Go to: Building_PickUp_WaitToReach'
             else:
                 return 'Go to: Building_PickUp_MoveOn'
@@ -733,6 +739,7 @@ class Building_DropDown_MoveOn(smach.State):
         global clients_instance
         global current_task
         global estimated_score
+        global publishers_instance
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
@@ -750,6 +757,7 @@ class Building_DropDown_MoveOn(smach.State):
         
         elif(response.nav_target_x != 0.0 or response.nav_target_y != 0.0): 
             nav_order = convert_next_subtask_to_nav_order(response)
+            print("Nav Roder Details: direction", response.nav_is_forward)
             send_target_order(nav_order)
             time.sleep(communication_wait_time)  
             if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
@@ -764,7 +772,8 @@ class Building_DropDown_MoveOn(smach.State):
             elif (current_navigator_state == 2):
                 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_WaitToReach_en
-                next_subtask_order = current_subtask_order + 1 
+                next_subtask_order = current_subtask_order + 1
+                publishers_instance.Current_Direction_Publisher.publish(Bool(data=response.nav_is_forward)) 
                 return 'Go to: Building_DropDown_WaitToReach'
             else:
                 return 'Go to: Building_DropDown_MoveOn'
@@ -872,6 +881,7 @@ class Bonderole_Pose_MoveOn(smach.State):
         global clients_instance
         global current_task
         global estimated_score
+        global publishers_instance
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
@@ -890,6 +900,7 @@ class Bonderole_Pose_MoveOn(smach.State):
         
         elif(response.nav_target_x != 0.0 or response.nav_target_y != 0.0):
             nav_order = convert_next_subtask_to_nav_order(response)
+            print("Nav Roder Details: direction", response.nav_is_forward)
             send_target_order(nav_order)
             time.sleep(communication_wait_time)  
             if(current_navigator_state == 9 or current_navigator_state == 10 or current_navigator_state == 7 ):
@@ -905,6 +916,7 @@ class Bonderole_Pose_MoveOn(smach.State):
                 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_WaitToReach_en
                 next_subtask_order = current_subtask_order + 1 
+                publishers_instance.Current_Direction_Publisher.publish(Bool(data=response.nav_is_forward))
                 return 'Go to: Bonderole_Pose_WaitToReach'
             else:
                 return 'Go to: Bonderole_Pose_MoveOn'
@@ -1134,8 +1146,9 @@ class Publishers(Node):
         self.Navigator_Target_Publisher = self.create_publisher(MasterNavigationMessage, 'ros_can_interface/master_nav', 10)
         self.Navigator_Stop_Publisher = self.create_publisher(MasterStopSignal, 'ros_can_interface/stop_signal', 10)
         self.Navigator_Reset_Publisher = self.create_publisher(MasterResetSignal, 'ros_can_interface/master_reset', 10)
-
+        self.Current_Direction_Publisher = self.create_publisher(Bool, 'current_direction',10)
         self.get_logger().info(f"Initialised all publishers ")    
+
 
 class EstimatedScorePublisher(Node):
     def __init__(self):
