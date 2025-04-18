@@ -304,7 +304,29 @@ class PathPlanner:
         else:
             intermediate_point = self.get_intermediate_point(current_position, target_position, obstacle_position)
             return [current_position, intermediate_point , target_position]
-            
+        
+    def get_backwards_point(self, current_position: Pose2D, current_direction : bool) -> Pose2D :
+        global robot_radius
+        backwards_circle_center = current_position
+        backwards_circle_radius = robot_radius + 50
+        
+        direction_vector = [math.cos(math.radians(current_position.theta)), math.sin(math.radians(current_position.theta))]
+
+        # Calculate the intersection point
+        if current_direction == True:
+            x_intersect = backwards_circle_center.x - backwards_circle_radius * direction_vector[0]
+            y_intersect = backwards_circle_center.y - backwards_circle_radius * direction_vector[1]
+        else:
+            x_intersect = backwards_circle_center.x + backwards_circle_radius * direction_vector[0]
+            y_intersect = backwards_circle_center.y + backwards_circle_radius * direction_vector[1]
+
+        
+
+        if( (0 + robot_radius < x_intersect < 3000 - robot_radius) and (0 + robot_radius < y_intersect < 2000 - robot_radius) ):
+            return Pose2D(x=x_intersect, y=y_intersect, theta=655.0)
+        else:
+            return Pose2D(x=-1.0, y=-1.0, theta=0.0)
+
         
 
 
