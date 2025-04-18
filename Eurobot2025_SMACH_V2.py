@@ -548,9 +548,10 @@ class DestinationReached(smach.State):
         time.sleep(0.05)
         order_finish_stop()
         send_acknowledge_signal()
+        print("backwards_after_stop_flag", backwards_after_stop_flag)
+        print("backwards_after_stop_only_once_flag", backwards_after_stop_only_once_flag)
         if backwards_after_stop_flag == True :
             current_task = backwards_point_after_stop
-            backwards_after_stop_flag = False
         else :    
             current_task = next_task #i changed the location of current_task = next_task from wait to reach
             #to DestinationReached to handle the SuddenStop case in optimal way
@@ -561,17 +562,21 @@ class DestinationReached(smach.State):
             elif (current_task.type == TaskType.BUILDING_PICKUP.value):
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_Init_en
                 backwards_after_stop_only_once_flag = False
+                backwards_after_stop_flag = False
                 return 'Go to: Building_PickUp_Init'
             elif (current_task.type == TaskType.BUILDING_DROPDOWN.value):
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_Init_en
                 backwards_after_stop_only_once_flag = False
+                backwards_after_stop_flag = False
                 return 'Go to: Building_DropDown_Init'    
             elif (current_task.type == TaskType.BONDEROLE_POSE.value):
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_Init_en
                 backwards_after_stop_only_once_flag = False
+                backwards_after_stop_flag = False
                 return 'Go to: Bonderole_Pose_Init'
             else:
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
+                backwards_after_stop_flag = False
                 return 'Go to: MoveOn'
 
         else:
@@ -661,7 +666,6 @@ class Building_PickUp_MoveOn(smach.State):
             elif (current_navigator_state == 2):
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_WaitToReach_en
                 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
-                next_subtask_order = current_subtask_order + 1 
                 robot_direction = response.nav_is_forward
                 publishers_instance.Current_Direction_Publisher.publish(Bool(data=response.nav_is_forward))
                 return 'Go to: Building_PickUp_WaitToReach'
@@ -685,6 +689,8 @@ class Building_PickUp_WaitToReach(smach.State):
         global MASTER_SMachineCurrentState_en
         global robot_stuck_wait_to_reach
         global lidar_obstacle_detected
+        global next_subtask_order
+        global current_subtask_order
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
@@ -699,6 +705,7 @@ class Building_PickUp_WaitToReach(smach.State):
         if(current_navigator_state == 3):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_PickUp_DestinationReached_en
+            next_subtask_order = current_subtask_order + 1 
             return 'Go to: Building_PickUp_DestinationReached'
 
         else:
@@ -806,7 +813,6 @@ class Building_DropDown_MoveOn(smach.State):
             elif (current_navigator_state == 2):
                 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_WaitToReach_en
-                next_subtask_order = current_subtask_order + 1
                 robot_direction = response.nav_is_forward
                 publishers_instance.Current_Direction_Publisher.publish(Bool(data=response.nav_is_forward)) 
                 return 'Go to: Building_DropDown_WaitToReach'
@@ -829,6 +835,8 @@ class Building_DropDown_WaitToReach(smach.State):
         global MASTER_SMachineCurrentState_en
         global lidar_obstacle_detected
         global robot_stuck_wait_to_reach
+        global current_subtask_order
+        global next_subtask_order
         time.sleep(0.05)
         order_finish_stop()
         signal.signal(signal.SIGINT, exit_handler)
@@ -844,6 +852,7 @@ class Building_DropDown_WaitToReach(smach.State):
         if(current_navigator_state == 3):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Building_DropDown_DestinationReached_en
+            next_subtask_order = current_subtask_order + 1            
             return 'Go to: Building_DropDown_DestinationReached'
 
         else:
@@ -951,7 +960,6 @@ class Bonderole_Pose_MoveOn(smach.State):
             elif (current_navigator_state == 2):
                 MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorBusy_en
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_WaitToReach_en
-                next_subtask_order = current_subtask_order + 1 
                 robot_direction = response.nav_is_forward
                 publishers_instance.Current_Direction_Publisher.publish(Bool(data=response.nav_is_forward))
                 return 'Go to: Bonderole_Pose_WaitToReach'
@@ -975,6 +983,8 @@ class Bonderole_Pose_WaitToReach(smach.State):
         global MASTER_SMachineCurrentState_en
         global lidar_obstacle_detected
         global robot_stuck_wait_to_reach
+        global current_subtask_order
+        global next_subtask_order
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
@@ -987,6 +997,7 @@ class Bonderole_Pose_WaitToReach(smach.State):
         if(current_navigator_state == 3):
             MASTER_CurrentNavigatorState_en = MASTER_NavigatorStates_ten.MASTER_NavigatorWaitToReceiveAcknowledge_en
             MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_DestinationReached_en
+            next_subtask_order = current_subtask_order + 1             
             return 'Go to: Bonderole_Pose_DestinationReached'
 
         elif ( current_navigator_state == 9 or current_navigator_state == 10 ):
@@ -1174,9 +1185,17 @@ class BackWardsAfterStop(smach.State):
         global lidar_obstacle_detected
         global clients_instance
         global backwards_point_after_stop
+        global backwards_after_stop_only_once_flag
+        global backwards_after_stop_flag
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
+        if (lidar_obstacle_detected == False):
+            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
+            backwards_after_stop_flag = True
+            backwards_after_stop_only_once_flag = True
+            return 'Go to: MoveOn'
+        
         get_backwards_point_after_stop()
         print(f"nav_target_x: {backwards_point_after_stop.position.x}")
         print(f"nav_target_y: {backwards_point_after_stop.position.y}")
@@ -1189,9 +1208,6 @@ class BackWardsAfterStop(smach.State):
 
         send_target_order(nav_order)
         time.sleep(communication_wait_time)
-        if (lidar_obstacle_detected == False):
-            MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
-            return 'Go to: MoveOn'
 
         if (current_navigator_state == 3 or current_navigator_state == 7):#Added  the wait to receive acknowledge condition
             send_acknowledge_signal()
