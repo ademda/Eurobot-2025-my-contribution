@@ -44,7 +44,7 @@ from ros_custom_messages.srv import GetMapState
 from enum import Enum
 from typing import List
 from ros_custom_messages.msg import TaskMsg, ObstacleMsg, PathMsg  
-from ros_custom_messages.srv import GetNextTaskPoint
+from ros_custom_messages.srv import GetNextTaskPoint, GetBackwardsPoint
 from strategy.static_task_generator import Task, SpeedChoice, TaskType
 from path_planning.pathplanner import PathPlanner
 from geometry_msgs.msg import Pose2D, Point
@@ -62,8 +62,7 @@ strategy_instance = None
 path_planner_instance = None
 robot_color = None
 current_position = None
-current_task = None
-enemy_position = Pose2D(x=0.0,y=0.0,theta=0.0)
+enemy_position = Pose2D(x=0.0, y=0.0, theta=0.0)
 
 obstacle_positions = []
 available_tasks = []
@@ -124,7 +123,7 @@ class Subscribers():
 class Services():
     def __init__(self):
         self.get_next_task_point_service= GetNextTaskPointService()
-
+        self.get_backwards_point_after_stop_service = GetBackwardsPointAfterStopService()
 
 class Clients():
     def __init__(self):
@@ -243,6 +242,37 @@ class GetMapStateClient(Node):
         else:    
             print("No obstacles.")
 
+class GetBackwardsPointAfterStopService(Node):
+    def __init__(self):
+        super().__init__('get_backwards_point_after_stop_service')
+        self.srv = self.create_service(GetBackwardsPoint, 'get_backwards_point_after_stop_service', self.handle_get_backwards_point_after_stop_callback)
+        self.get_logger().info('Get backwards point after stop service is available now')
+
+    def handle_get_backwards_point_after_stop_callback(self, request : GetBackwardsPoint.Request, response: GetBackwardsPoint.Response):
+        global path_planner_instance
+        current_position = Pose2D(x=request.nav_target_x, y=request.nav_target_y, theta=request.nav_target_angle)
+        current_direction = request._nav_is_forward
+        self.get_logger().info('Got a request about next task... Now sending a response')
+        get_map_state()
+        print("got the map state")
+        #next_task = get_next_task(request.task_id) #heer i changed to returning the next
+        #available task in teh available_tasks list
+        response = GetBackwardsPoint.Response()  
+        backwards_point = path_planner_instance.get_backwards_point(current_position, current_direction)
+        response.task_id = request.task_id
+        response.nav_target_x = backwards_point.x
+        response.nav_target_y= backwards_point.y
+        response.nav_target_angle = backwards_point.theta
+        response.nav_is_forward = not current_direction
+        response.task_type = TaskType.NORMAL_NAV.value
+        response.score = 0
+        response.nav_linear_velocity_choice = SpeedChoice.NORMAL.value
+        response.nav_angular_velocity_choice = SpeedChoice.NORMAL.value
+        response.nav_linear_acceleration_choice = SpeedChoice.NORMAL.value
+        response.nav_angular_acceleration_choice = SpeedChoice.NORMAL.value
+        response.nav_is_with_platforms = request.nav_is_with_platforms
+
+        return response            
 
 class GetNextTaskPointService(Node):
     """
@@ -366,6 +396,11 @@ def convert_path_to_path_msg(path: List[Pose2D]):
         path_msg.path.append(pose)
     return path_msg
 
+def get_backwards_point(current_position: Pose2D, current_direction : bool):
+    global path_planner_instance
+    backwards_point = path_planner_instance.get_backwards_point(current_position, current_direction)
+    return backwards_point
+
 def get_path_from_rrt(start_pos, goal_pos, obstacles_position, enemy_robot_position):    
     global path_planner_instance
     path = path_planner_instance.get_path_rrt(start_pos, goal_pos, obstacles_position, enemy_robot_position)
@@ -469,6 +504,7 @@ def main(args=None):
     executor.add_node(subscribers_instance.strategy_navigator_receive_position_subscriber)
     executor.add_node(subscribers_instance.strategy_enemy_robot_position_subscriber)
     executor.add_node(strategy_instance)
+    executor.add_node(servers_instance.get_backwards_point_after_stop_service)
 
     try:
         # Spin all nodes in the executor (it will handle them in separate threads)
@@ -484,6 +520,7 @@ def main(args=None):
     subscribers_instance.strategy_enemy_robot_position_subscriber.destroy_node()
     subscribers_instance.strategy_navigator_receive_position_subscriber.destroy_node()
     subscribers_instance.strategy_my_robot_color.destroy_node()
+    servers_instance.get_backwards_point_after_stop_service.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
