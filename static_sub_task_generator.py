@@ -89,6 +89,10 @@ class GetNextSubTaskService(Node):
         self.get_logger().info('Got a request About NextSubtask... Now sending a response')    
         #print_all_subtasks()
         current_task = get_task_from_id(request.current_task_id)
+        if current_task == None :
+            self.get_logger().warn('Error: Current task not found in available tasks.')
+            response.current_subtask_order = -1
+            return response
         print(request.current_subtask_order)
         print(request.current_task_id)
         current_index = request.current_subtask_order
