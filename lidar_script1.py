@@ -126,7 +126,7 @@ class LidarReader(Node):
         
         if current_direction and is_in_front and in_range:
             obstacle_detected = True
-        elif not current_direction and is_in_front and in_range:
+        elif (not current_direction) and  is_in_front and in_range:
             obstacle_detected = True
 
         if obstacle_detected:
