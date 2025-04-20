@@ -44,7 +44,7 @@ from ros_custom_messages.srv import GetMapState
 from enum import Enum
 from typing import List
 from ros_custom_messages.msg import TaskMsg, ObstacleMsg, PathMsg  
-from ros_custom_messages.srv import GetNextTaskPoint, GetBackwardsPoint
+from ros_custom_messages.srv import GetNextTaskPoint, GetBackwardsPoint, DeleteTask
 from strategy.static_task_generator import Task, SpeedChoice, TaskType
 from path_planning.pathplanner import PathPlanner
 from geometry_msgs.msg import Pose2D, Point
@@ -62,6 +62,7 @@ strategy_instance = None
 path_planner_instance = None
 robot_color = None
 current_position = None
+rrt_failure_counter = 0
 enemy_position = Pose2D(x=0.0, y=0.0, theta=0.0)
 
 obstacle_positions = []
@@ -128,6 +129,7 @@ class Services():
 class Clients():
     def __init__(self):
         self.get_map_state_client = GetMapStateClient()
+        self.switch_task_client = SwitchTaskClient()
 
 class Publishers():
     def __init__(self):
@@ -153,7 +155,7 @@ class Navigator_Receive_Position_Subscriber(Node):
 
 class StrategyServerRobotColorSubscriber(Node):
     def __init__(self):
-        super().__init__('static_task_robot_color_subscriber')
+        super().__init__('strategy_robot_color_subscriber')
         self.sub = self.create_subscription(String, 'robot_color', self.robot_color_callback, 10) 
         self.get_logger().warn('Created robot_color_subscriber:strateg_server node')
         self.counter = 0
@@ -185,9 +187,39 @@ class Enemy_Robot_Position_Subscriber(Node):
         enemy_position.y = msg.y
         enemy_position.theta = msg.z
 
+
+class SwitchTaskClient(Node):
+    def __init__(self):
+        super().__init__('switch_task_client')
+        self.client = self.create_client(DeleteTask, 'switch_task_service')
+        # Wait for the service to be available
+        while not self.client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('switch_task_client Service not available, waiting again...')
+        self.get_logger().info('switch_task_client Service is available, ready to send request!')
+
+    def send_request(self, next_task):
+        request = DeleteTask.Request()
+        request.id = next_task.id
+        self.get_logger().info('Sending request to switch the task....')
+        # Call the service and block until the response is complete        
+        self.future = self.client.call_async(request)
+        rclpy.spin_until_future_complete(self, self.future)  # Wait until the service call is completed
+
+        if self.future.done():
+            try:
+                response = self.future.result()  # Get the response from the service
+                #self.get_logger().warn(f'Received tasks: {response.tasks}')
+                #self.get_logger().warn(f'Received obstacle positions: {response.obstacle_positions}')
+
+                #self.process_response(available_tasks, obstacle_positions) removed it for easier debugging
+                return response
+            except Exception as e:
+                self.get_logger().error(f'Service call failed: {e}')
+                return None
+            
 class GetMapStateClient(Node):
     def __init__(self):
-        super().__init__('get_map_state_client')
+        super().__init__('strategy_get_map_state_client')
         self.client = self.create_client(GetMapState, 'get_map_state_service')
 
         # Wait for the service to be available
@@ -295,6 +327,7 @@ class GetNextTaskPointService(Node):
         global current_position
         global enemy_position
         global publishers_instance
+        global rrt_failure_counter 
         self.get_logger().info('Got a request about next task... Now sending a response')
         get_map_state()
         #next_task = get_next_task(request.task_id) #heer i changed to returning the next
@@ -304,7 +337,20 @@ class GetNextTaskPointService(Node):
             print("HEEEEEERE")
             next_task = find_finished_task()
         else:    
-            next_task = available_tasks[0]
+            next_task = available_tasks[0]   
+        if rrt_failure_counter >= 4 and next_task.type == TaskType.BUILDING_PICKUP.value:
+            print("rrt failure counter is too high")
+            clients_instance.switch_task_client.send_request(next_task)
+            rrt_failure_flag = Pose2D(x = -1.0, y = -1.0, theta = 0.0)
+            print("will return rrt failure flag to the state machine")
+            response = convert_intermediate_point_to_response_msg(rrt_failure_flag, response, next_task)
+            rrt_failure_counter = 0
+            #path_msg=convert_path_to_path_msg(path)
+            #publishers_instance.strategy_rrt_path_publisher.strategy_rrt_path_publisher.publish(path_msg)
+            return response
+            #need to add a function to change the task to do
+            # i thing i will create a request to the static_task_generaotr to switch the task if it is pickup task 
+            # need to handle task id 14 and and id 1 because they are paired together with their dropdown zone    
         #print("ii m here noooooooooooooooow")
         next_task_position = Pose2D(x=next_task.position.x, y=next_task.position.y, theta=next_task.position.theta)
         enemy_position = Pose2D(x=enemy_position.x, y=enemy_position.y, theta=enemy_position.theta)
@@ -317,12 +363,14 @@ class GetNextTaskPointService(Node):
         rrt_failure_flag = path[0]
         if (rrt_failure_flag.x == -1 and rrt_failure_flag.y == -1 and rrt_failure_flag.theta == 0):
             self.get_logger().warn('Didnt find valid path for the first time')
+            rrt_failure_counter += 1
             path = get_path_from_rrt(current_position, next_task_position, rrt_obstacles, enemy_position)
             if len(path) >=2:
                 intermediate_point = path[1]
             rrt_failure_flag = path[0]
             if (rrt_failure_flag.x == -1 and rrt_failure_flag.y == -1 and rrt_failure_flag.theta == 0):
                 print("IMPOSSIBLE TO REACH THE TARGET")
+                rrt_failure_counter += 1
                 response = convert_intermediate_point_to_response_msg(rrt_failure_flag, response, next_task)
                 path_msg=convert_path_to_path_msg(path)
                 publishers_instance.strategy_rrt_path_publisher.strategy_rrt_path_publisher.publish(path_msg)
@@ -333,6 +381,7 @@ class GetNextTaskPointService(Node):
                 ####### building dropdown (to the static task generator)
             else:
                 response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
+                rrt_failure_counter = 0
                 # Convert the task to the response message format
                 """print(next_task.id)
                 print(next_task.type)
@@ -356,6 +405,7 @@ class GetNextTaskPointService(Node):
             #print("intermediate_point heeeeeeere", intermediate_point)
             response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
             path_msg=convert_path_to_path_msg(path)
+            rrt_failure_counter = 0
             publishers_instance.strategy_rrt_path_publisher.strategy_rrt_path_publisher.publish(path_msg)
             # Convert the task to the response message format
             """print(next_task.id)
@@ -504,6 +554,7 @@ def main(args=None):
     executor.add_node(subscribers_instance.strategy_navigator_receive_position_subscriber)
     executor.add_node(subscribers_instance.strategy_enemy_robot_position_subscriber)
     executor.add_node(strategy_instance)
+    executor.add_node(clients_instance.switch_task_client)
     executor.add_node(servers_instance.get_backwards_point_after_stop_service)
 
     try:
@@ -521,6 +572,7 @@ def main(args=None):
     subscribers_instance.strategy_navigator_receive_position_subscriber.destroy_node()
     subscribers_instance.strategy_my_robot_color.destroy_node()
     servers_instance.get_backwards_point_after_stop_service.destroy_node()
+    clients_instance.switch_task_client.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
