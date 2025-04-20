@@ -901,16 +901,49 @@ class SwitchTaskService(Node):
                 self.get_logger().error('No BUILDING_DROPDOWN task found after the to_switch_task')
                 return response
 
-            # Remove the to_switch_task and next_building_dropdown_task from their current positions
-            available_tasks.remove(to_switch_task)
-            available_tasks.remove(next_building_dropdown_task)
+            # Find the next BUILDING_PICKUP task after the to_switch_task
+            to_switch_task_index = available_tasks.index(to_switch_task)
+            next_building_pickup_task = None
+            for i in range(to_switch_task_index + 1, len(available_tasks)):
+                if available_tasks[i].type == TaskType.BUILDING_PICKUP:
+                    next_building_pickup_task = available_tasks[i]
+                    break
 
-            # Insert them before the RETURN_TO_FINISH_SPOT task
-            return_to_finish_spot_index = available_tasks.index(return_to_finish_spot_task)
-            available_tasks.insert(return_to_finish_spot_index, next_building_dropdown_task)
-            available_tasks.insert(return_to_finish_spot_index, to_switch_task)
+            if next_building_pickup_task is None:
+                self.get_logger().error('No BUILDING_PICKUP task found after the to_switch_task')
+                return response
 
-            self.get_logger().info(f'Task with id {to_switch_task_id} and the next BUILDING_DROPDOWN task placed before RETURN_TO_FINISH_SPOT task')
+            # Find the next BUILDING_DROPDOWN task after the next_building_pickup_task
+            next_next_building_dropdown_task = None
+            for i in range(available_tasks.index(next_building_pickup_task) + 1, len(available_tasks)):
+                if available_tasks[i].type == TaskType.BUILDING_DROPDOWN:
+                    next_next_building_dropdown_task = available_tasks[i]
+                    break
+
+            if next_next_building_dropdown_task is None:
+                self.get_logger().error('No BUILDING_DROPDOWN task found after the next BUILDING_PICKUP task')
+                return response
+            print("next_building_oickup id:", next_building_pickup_task.id)
+            print("to_switch_task_id ", to_switch_task_id)
+            next_building_pickup_task_index = available_tasks.index(next_building_pickup_task)
+            # Switch the to_switch_task with the next BUILDING_PICKUP task
+            available_tasks[to_switch_task_index], available_tasks[next_building_pickup_task_index] = (
+                available_tasks[next_building_pickup_task_index],
+                available_tasks[to_switch_task_index],
+            )
+
+            next_building_dropdown_task_index = available_tasks.index(next_building_dropdown_task)
+            next_next_building_dropdown_task_index = available_tasks.index(next_next_building_dropdown_task)
+
+            available_tasks[next_next_building_dropdown_task_index], available_tasks[next_building_dropdown_task_index] = (
+                available_tasks[next_building_dropdown_task_index],
+                available_tasks[next_next_building_dropdown_task_index],
+            )
+
+            # Switch the next BUILDING_DROPDOWN task with the one after it
+            
+
+            self.get_logger().info(f'Task with id {to_switch_task_id} switched with the next BUILDING_PICKUP task, and the next BUILDING_DROPDOWN task switched with the one after it')
             return response
 
         else:
