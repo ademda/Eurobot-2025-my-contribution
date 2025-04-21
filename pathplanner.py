@@ -9,15 +9,20 @@ import time
 # Parameters for obstacle and robot dimensions
 obstacle_radius = 60
 robot_radius = 185
-safe_distance = 100
+safe_distance = 0
 enemy_radius=175
 
-
+"""
+self.prohibited_zones = [
+            [(zone[0]-robot_radius)/ 4, (zone[1]-robot_radius) / 4, (zone[2]+robot_radius) / 4, (zone[3]+robot_radius) / 4]
+            for zone in prohibited_zones
+        ]
+"""
 class PathPlanner:
     def __init__(self, prohibited_zones):
         # Initialize prohibited zones (scaled down by 4)
         self.prohibited_zones = [
-            [zone[0]/ 4, zone[1] / 4, zone[2] / 4, zone[3] / 4]
+            [(zone[0])/ 4, (zone[1]) / 4, (zone[2]) / 4, (zone[3]) / 4]
             for zone in prohibited_zones
         ]
 
@@ -155,7 +160,7 @@ class PathPlanner:
                 print(pose)
                 final_path.append(pose)
             final_path.append(target_position)
-        #print("target position",target_position)
+            #print("target position",target_position)
             
         return final_path
 
