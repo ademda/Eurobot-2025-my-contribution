@@ -6,19 +6,23 @@ from typing import List
 import threading
 import time
 
-
 # Parameters for obstacle and robot dimensions
 obstacle_radius = 60
-robot_radius = 175
-safe_distance = 50 # adem:maybe i need to make this 0 or 10 only
+robot_radius = 185
+safe_distance = 0
 enemy_radius=175
 
-
+"""
+self.prohibited_zones = [
+            [(zone[0]-robot_radius)/ 4, (zone[1]-robot_radius) / 4, (zone[2]+robot_radius) / 4, (zone[3]+robot_radius) / 4]
+            for zone in prohibited_zones
+        ]
+"""
 class PathPlanner:
     def __init__(self, prohibited_zones):
         # Initialize prohibited zones (scaled down by 4)
         self.prohibited_zones = [
-            [zone[0] / 4, zone[1] / 4, zone[2] / 4, zone[3] / 4]
+            [(zone[0]-robot_radius)/ 4, (zone[1]-robot_radius) / 4, (zone[2]+robot_radius) / 4, (zone[3]+robot_radius) / 4]
             for zone in prohibited_zones
         ]
 
@@ -78,6 +82,16 @@ class PathPlanner:
 
     
     def get_path_rrt(self, current_position: Pose2D, target_position: Pose2D, obstacles_position: List[Pose2D], enemy_robot_position: Pose2D):
+        """
+    Calculate a path from current_position to target_position using RRT,
+    while avoiding obstacles and an enemy robot.
+
+    Positions are provided as Pose2D objects.
+    Global parameters such as robot_radius, obstacle_radius, and safe_distance
+    are used to define obstacle boundaries and clearance.
+
+    Returns a list of Pose2D objects representing the path.
+    """
         global robot_radius
         robot_radius_reduced = (robot_radius / 4)
         start = (int(current_position.x / 4), int(current_position.y / 4))
@@ -89,12 +103,12 @@ class PathPlanner:
         dx = enemy_robot_position.x - target_position.x
         dy = enemy_robot_position.y - target_position.y
         distance_target_enemy = math.sqrt(dx**2 + dy**2)
-        if distance_target_enemy <= obstacle_radius + robot_radius :
-            pose = Pose2D()
-            pose.x = -1.0
-            pose.y = -1.0
-            pose.theta = 0.0
-            return [pose]
+       # if distance_target_enemy <= obstacle_radius + robot_radius :
+        #    pose = Pose2D()
+         #   pose.x = -1.0
+          #  pose.y = -1.0
+           # pose.theta = 0.0
+            #return [pose]
 
         # In get_path_rrt():
         obstacles = []
@@ -115,7 +129,7 @@ class PathPlanner:
                 if (distance_obstacle_current > buffer_current) and (distance_obstacle_target > buffer_target):
                     obstacles.append([int(obstacle.x/4), int(obstacle.y/4)])
         enemy_robot_position_rrt = [int(enemy_robot_position.x/4), int(enemy_robot_position.y/4)]
-
+        obstacles.append(enemy_robot_position_rrt)
         print("start:", start)
         print("goal:", goal)
         #print("obstacles:", obstacles)
@@ -146,7 +160,7 @@ class PathPlanner:
                 print(pose)
                 final_path.append(pose)
             final_path.append(target_position)
-        #print("target position",target_position)
+            #print("target position",target_position)
             
         return final_path
 
@@ -295,14 +309,25 @@ class PathPlanner:
         else:
             intermediate_point = self.get_intermediate_point(current_position, target_position, obstacle_position)
             return [current_position, intermediate_point , target_position]
-            
+        
+    def get_backwards_point(self, current_position: Pose2D, current_direction : bool) -> Pose2D :
+        global robot_radius
+        backwards_circle_center = current_position
+        backwards_circle_radius = robot_radius + 50
+        
+        direction_vector = [math.cos(math.radians(current_position.theta)), math.sin(math.radians(current_position.theta))]
+
+        # Calculate the intersection point
+        if current_direction == True:
+            x_intersect = backwards_circle_center.x - backwards_circle_radius * direction_vector[0]
+            y_intersect = backwards_circle_center.y - backwards_circle_radius * direction_vector[1]
+        else:
+            x_intersect = backwards_circle_center.x + backwards_circle_radius * direction_vector[0]
+            y_intersect = backwards_circle_center.y + backwards_circle_radius * direction_vector[1]
+
         
 
-
-        
-
-
-
-
-
-        
+        if( (0 + robot_radius < x_intersect < 3000 - robot_radius) and (0 + robot_radius < y_intersect < 2000 - robot_radius) ):
+            return Pose2D(x=x_intersect, y=y_intersect, theta=655.0)
+        else:
+            return Pose2D(x=-1.0, y=-1.0, theta=0.0)        

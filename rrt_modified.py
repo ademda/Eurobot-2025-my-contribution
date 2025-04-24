@@ -6,7 +6,7 @@ from typing import List, Tuple
 
 class RRTGraph: 
     SAFETY_DISTANCE: int = 0
-    ENEMY_RADIUS = 175
+    ENEMY_RADIUS = 175/4
 
     def __init__(self, start, goal, mapDimensions, my_dim, obsdim, obstacles, adv_obs, prohibited_zones):
         self.reset(start, goal, mapDimensions, my_dim, obsdim, obstacles, adv_obs, prohibited_zones)
@@ -169,8 +169,12 @@ class RRTGraph:
             y = y1 * u + y2 * (1 - u)
             # Enemy check
             distance_to_enemy = math.sqrt((x - self.adv_obs[0])**2 + (y - self.adv_obs[1])**2)
-            if distance_to_enemy < 100:       #(self.ENEMY_RADIUS + self.SAFETY_DISTANCE + self.my_dim):
-                return True
+            """if distance_to_enemy < (100/4):       #(self.ENEMY_RADIUS + self.SAFETY_DISTANCE + self.my_dim):
+                return True"""
+            if distance_to_enemy < (self.ENEMY_RADIUS + self.SAFETY_DISTANCE + self.my_dim):
+                #print("crossObstacle: enemy detected")
+                return True#adem : commented the last line and added this one
+            
             # Prohibited zones check
             for zone in self.prohibited_zones:
                 x_min, y_min, x_max, y_max = zone

@@ -9,15 +9,20 @@ import time
 # Parameters for obstacle and robot dimensions
 obstacle_radius = 60
 robot_radius = 185
-safe_distance = 100
+safe_distance = 0
 enemy_radius=175
 
-
+"""
+self.prohibited_zones = [
+            [(zone[0]-robot_radius)/ 4, (zone[1]-robot_radius) / 4, (zone[2]+robot_radius) / 4, (zone[3]+robot_radius) / 4]
+            for zone in prohibited_zones
+        ]
+"""
 class PathPlanner:
     def __init__(self, prohibited_zones):
         # Initialize prohibited zones (scaled down by 4)
         self.prohibited_zones = [
-            [zone[0]/ 4, zone[1] / 4, zone[2] / 4, zone[3] / 4]
+            [(zone[0]-robot_radius)/ 4, (zone[1]-robot_radius) / 4, (zone[2]+robot_radius) / 4, (zone[3]+robot_radius) / 4]
             for zone in prohibited_zones
         ]
 
@@ -62,7 +67,25 @@ class PathPlanner:
         return result[0]  # Return the result obtained by the worker thread
         
     def can_go_directly_to_target(self, current_position : Pose2D, task_position : Pose2D, map_obstacles : List[Pose2D], enemy_robot_position : Pose2D) -> bool:
+        obstacles = map_obstacles
+        obstacles = []
         for obstacle in map_obstacles:
+            if obstacle != task_position:
+                dx_current = obstacle.x - current_position.x
+                dy_current = obstacle.y - current_position.y
+                distance_obstacle_current = math.sqrt(dx_current**2 + dy_current**2)
+
+                dx_target = obstacle.x - task_position.x
+                dy_target = obstacle.y - task_position.y
+                distance_obstacle_target = math.sqrt(dx_target**2 + dy_target**2)
+
+                buffer_current = obstacle_radius + robot_radius + safe_distance  # 450 units
+                buffer_target = obstacle_radius + robot_radius  
+
+                # Include obstacle if it's not too close to the robot or target
+                if (distance_obstacle_current > buffer_current) and (distance_obstacle_target > buffer_target):
+                    obstacles.append(Pose2D(x=obstacle.x, y=obstacle.y, theta=0.0))
+        for obstacle in obstacles:
             # Pour chaque obstacle, vérifie si le chemin direct est valide et si la position de la tâche n'est pas égale à celle de l'obstacle
             if ( (not self.is_valid_path(current_position, task_position,obstacle, obstacle_radius)) and 
                 (task_position.x != obstacle.x and task_position.y != obstacle.y) ):
@@ -155,7 +178,7 @@ class PathPlanner:
                 print(pose)
                 final_path.append(pose)
             final_path.append(target_position)
-        #print("target position",target_position)
+            #print("target position",target_position)
             
         return final_path
 
@@ -325,15 +348,4 @@ class PathPlanner:
         if( (0 + robot_radius < x_intersect < 3000 - robot_radius) and (0 + robot_radius < y_intersect < 2000 - robot_radius) ):
             return Pose2D(x=x_intersect, y=y_intersect, theta=655.0)
         else:
-            return Pose2D(x=-1.0, y=-1.0, theta=0.0)
-
-        
-
-
-        
-
-
-
-
-
-        
+            return Pose2D(x=-1.0, y=-1.0, theta=0.0)        
