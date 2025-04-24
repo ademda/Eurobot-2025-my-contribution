@@ -161,9 +161,9 @@ class LidarReader(Node):
             #self.nav_current_angle = msg.nav_current_angle    
             #print("x from lidar",self.nav_current_x)
             #print("y from lidar",self.nav_current_y)    
-            #self.get_logger().info(f'Received nav_current_x: {self.nav_current_x}')
-            #self.get_logger().info(f'Received nav_current_y: {self.nav_current_y}')
-            #self.get_logger().info(f'Received nav_current_angle: {self.nav_current_angle}')
+            self.get_logger().info(f'Received nav_current_x: {self.nav_current_x}')
+            self.get_logger().info(f'Received nav_current_y: {self.nav_current_y}')
+            self.get_logger().info(f'Received nav_current_angle: {self.nav_current_angle}')
         except IndexError as e:
             self.get_logger().error(f"Message format error: {e}")
 
