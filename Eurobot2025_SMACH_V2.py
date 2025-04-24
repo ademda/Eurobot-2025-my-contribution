@@ -1267,7 +1267,7 @@ class Finished(smach.State):
 class Publishers(Node):
 
     def __init__(self):
-        super().__init__('publishers')
+        super().__init__('statemachine_publishers')
 
         # Create publishers as attributes
         self.Navigator_Acknowledge_Publisher = self.create_publisher(MasterAcknowledgeSignal, 'ros_can_interface/master_acknowledge', 10)
@@ -1299,7 +1299,7 @@ class EstimatedScorePublisher(Node):
 
 class CurrentTaskPublisher(Node):
     def __init__(self):
-        super().__init__('estimated_score_publisher')
+        super().__init__('current_task_publisher')
         self.current_task_publisher = self.create_publisher(CurrentTask, 'current_task',10)
         
         self.create_timer(0.1, self.current_task_callback)
@@ -1320,7 +1320,7 @@ class CurrentTaskPublisher(Node):
     
 class Subscribers(Node):
     def __init__(self):
-        super().__init__('subscribers')
+        super().__init__('statemachine_subscribers')
         self.navigator_receive_position_subscriber = Navigator_Receive_Position_Subscriber()
         self.lidar_obstacle_detected_subscriber = LidarObstacleDetectedSubscriber()
         self.init_position_subscriber = InitPositionSubscriber()
@@ -1366,7 +1366,7 @@ class Navigator_Receive_Position_Subscriber(Node):
 
 class LidarObstacleDetectedSubscriber(Node):
     def __init__(self):
-        super().__init__('Obstacle_Enemy_Detected')
+        super().__init__('State_Machine_Obstacle_Enemy_Detected')
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             depth=10
