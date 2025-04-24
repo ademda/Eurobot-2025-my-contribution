@@ -257,8 +257,8 @@ class MapStateUpdater(Node):
                     while current_index < len(available_tasks) - 1:
                         # Find the next BUILDING_PICKUP task for replacement
                         next_task_index = next((i for i in range(current_index + 1, len(available_tasks)) 
-                                                if (available_tasks[i].type == TaskType.BUILDING_PICKUP and  available_tasks[i].id != 1)), None)
-
+                                                if (available_tasks[i].type == TaskType.BUILDING_PICKUP and  available_tasks[i].id != 1)), None) # be aware here no id 14
+ 
                         next_dropoff_task_index = next((i for i in range(current_index + 1, len(available_tasks)) 
                                                 if (available_tasks[i].type == TaskType.BUILDING_DROPDOWN )), None)
 
@@ -276,7 +276,7 @@ class MapStateUpdater(Node):
                             self.get_logger().warn('No more BUILDING_DROPDOWN tasks to cascade replacements')
                             break
                             
-                        print("next drop off index",next_next_dropoff_task_index)
+                        print("next next drop off index",next_next_dropoff_task_index)
                         print("next drop off index",next_dropoff_task_index)
                         # Replace the current task with the next BUILDING_PICKUP task
                         available_tasks[current_index] = available_tasks[next_task_index]
@@ -286,16 +286,18 @@ class MapStateUpdater(Node):
                         # Move to the next task in the chain
                         current_index = next_task_index
 
-                    last_task_index = next((i for i in range(current_index, len(available_tasks)) 
+                    last_task_index = next((i for i in range(current_index , len(available_tasks)) 
                                             if available_tasks[i].type == TaskType.BUILDING_PICKUP), None)
                     print("last task index",last_task_index)
                     if last_task_index:
                         self.get_logger().warn(f'Removing final replaced task at index {last_task_index} from available_tasks')
+                        if last_task_index is not None:
+                            print(f"Task ID related to last_task_index: {available_tasks[last_task_index].id}")
                         available_tasks.pop(last_task_index)
-
-                    next_dropoff_index = next((i for i in range(last_task_index, len(available_tasks)) 
-                                if available_tasks[i].type == TaskType.BUILDING_DROPDOWN), None)
-        
+                    if last_task_index is not None: 
+                        next_dropoff_index = next((i for i in range(last_task_index, len(available_tasks)) 
+                                    if available_tasks[i].type == TaskType.BUILDING_DROPDOWN), None)
+            
                     if next_dropoff_index is not None:
                         self.get_logger().warn(f'Removing next BUILDING_DROPDOWN task at index {next_dropoff_index} from available_tasks')
                         true_task_next_dropoff_index=find_equivalent_true_task(next_dropoff_index)
@@ -384,8 +386,8 @@ class MapStateUpdater(Node):
                     if (calculate_distance(obstacle, another_obstacle) <= max_distance_between_obstacles and 
                         another_obstacle.type.value == ObstacleType.BUILDING.value and 
                         another_obstacle != obstacle):
-                        print("another obstacle", another_obstacle.position.x)
-                        print("obstacle", obstacle.position.y)
+                        #print("another obstacle", another_obstacle.position.x)
+                        #print("obstacle", obstacle.position.y)
                         obstacle_positions.pop(i)
                         i = i-1
                 obstacle_positions.remove(obstacle)
@@ -818,8 +820,92 @@ obstacle_positions = [
     Obstacle(position=Point2D(1860.0, 945.0), obstacle_type=ObstacleType.BUILDING),
     Obstacle(position=Point2D(1960.0, 945.0), obstacle_type=ObstacleType.BUILDING),
     Obstacle(position=Point2D(2060.0, 945.0), obstacle_type=ObstacleType.BUILDING),
+
 ]
 
+movable_obstacles_id4 = [
+    Obstacle(position=Point2D(1076.0, 135.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1176.0, 135.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1276.0, 135.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1376.0, 135.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+movable_obstacles_id6 = [
+    Obstacle(position=Point2D(1076.0, 290.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1176.0, 290.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1276.0, 290.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1376.0, 290.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+movable_obstacles_id2 = [
+    Obstacle(position=Point2D(620.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(720.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(820.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(920.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+movable_obstacles_id12 = [
+    Obstacle(position=Point2D(2722.0, 734.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2722.0, 834.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2722.0, 934.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2722.0, 1034.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+movable_obstacles_id8 = [
+    Obstacle(position=Point2D(2900.0, 734.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2900.0, 834.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2900.0, 934.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2900.0, 1034.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+movable_obstacles_id10 = [
+    Obstacle(position=Point2D(2619.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2719.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2819.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2919.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]    
+
+movable_obstacles_id24 = [
+    Obstacle(position=Point2D(1624.0, 135.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1724.0, 135.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1824.0, 135.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1924.0, 135.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+movable_obstacles_id26 = [
+    Obstacle(position=Point2D(1624.0, 290.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1724.0, 290.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1824.0, 290.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1924.0, 290.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+movable_obstacles_id22 = [
+    Obstacle(position=Point2D(2080.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2180.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2280.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2380.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+movable_obstacles_id30 = [
+    Obstacle(position=Point2D(80.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(181.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(281.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(381.0, 110.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+movable_obstacles_id28 = [
+    Obstacle(position=Point2D(100.0, 734.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(100.0, 834.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(100.0, 934.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(100.0, 1034.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+movable_obstacles_id32 = [
+    Obstacle(position=Point2D(278.0, 734.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(278.0, 834.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(278.0, 934.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(278.0, 1034.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
 
 """obstacles = [
     [80, 542],[80, 442],[80, 342],[80, 242],[630, 242],[730, 242],[830, 242],[930, 242],
@@ -855,7 +941,9 @@ class DeleteTaskService(Node):
                     true_tasks.pop(equivalent_true_task)
                 available_tasks.remove(task)
                 self.get_logger().error(f'Removed task with id {request.id}')
-                break
+                selected_task = task
+                #break # need to test not breaking
+            add_obstacles_to_obstacles_list(selected_task)    
         return response
                 
 class SwitchTaskService(Node):
@@ -1156,6 +1244,47 @@ def communication_instances_init():
     
 ############################# UTILITY FUNCTIONS #####################
 
+def add_obstacles_to_obstacles_list(task: Task):
+    global obstacle_positions
+    global movable_obstacles_id4
+    global movable_obstacles_id6
+    global movable_obstacles_id2
+    global movable_obstacles_id12
+    global movable_obstacles_id8
+    global movable_obstacles_id10
+    global movable_obstacles_id24
+    global movable_obstacles_id26
+    global movable_obstacles_id22
+    global movable_obstacles_id30
+    global movable_obstacles_id28
+    global movable_obstacles_id32    
+    
+    
+    if task.id == 4:
+        obstacle_positions.extend(movable_obstacles_id4)
+    elif task.id == 6:
+        obstacle_positions.extend(movable_obstacles_id6)
+    elif task.id == 2:
+        obstacle_positions.extend(movable_obstacles_id2)
+    elif task.id == 12:
+        obstacle_positions.extend(movable_obstacles_id12)
+    elif task.id == 8:
+        obstacle_positions.extend(movable_obstacles_id8)
+    elif task.id == 10:
+        obstacle_positions.extend(movable_obstacles_id10)
+    elif task.id == 24:
+        obstacle_positions.extend(movable_obstacles_id24)
+    elif task.id == 26:
+        obstacle_positions.extend(movable_obstacles_id26)
+    elif task.id == 22:
+        obstacle_positions.extend(movable_obstacles_id22)
+    elif task.id == 30:
+        obstacle_positions.extend(movable_obstacles_id30)
+    elif task.id == 28:
+        obstacle_positions.extend(movable_obstacles_id28)
+    elif task.id == 32: 
+        obstacle_positions.extend(movable_obstacles_id32)                    
+
 def display_available_tasks():
         global available_tasks
         for task in available_tasks:
@@ -1215,10 +1344,10 @@ def find_equivalent_true_task(index):
     return None
 
 def calculate_distance(obstacle1:Obstacle, obstacle2:Obstacle):
-    print("obstacle1.position.x",obstacle1.position.x)
-    print("obstacle1.position.y",obstacle1.position.y)
-    print("obstacle2.position.x",obstacle2.position.x)
-    print("obstacle2.position.y",obstacle2.position.y)
+    #print("obstacle1.position.x",obstacle1.position.x)
+    #print("obstacle1.position.y",obstacle1.position.y)
+    #print("obstacle2.position.x",obstacle2.position.x)
+    #print("obstacle2.position.y",obstacle2.position.y)
     return math.sqrt((obstacle1.position.x - obstacle2.position.x) ** 2 + (obstacle1.position.y - obstacle2.position.y) ** 2)
 
 def convert_to_subtask_list_msg (subtask_list: List['SubTask']):
