@@ -907,6 +907,40 @@ movable_obstacles_id32 = [
     Obstacle(position=Point2D(278.0, 1034.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
 ]
 
+fixed_inside_prohibted_zone_area_of_blue = [
+    Obstacle(position=Point2D(361.0, 1023.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(150.0, 1023.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(361.0, 746.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(150.0, 746.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1650.0, 330.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1900.0, 330.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1650.0, 150.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1900.0, 150.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1200.0, 1900.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1200.0, 1600.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1800.0, 1900.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1800.0, 1600.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2150.0, 1900.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(850.0, 1900.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
+fixed_inside_prohibted_zone_area_of_yellow = [
+    Obstacle(position=Point2D(2640.0, 1023.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2850.0, 1023.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2640.0, 746.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2850.0, 746.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1350.0, 330.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1100.0, 330.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1350.0, 150.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1100.0, 150.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1200.0, 1900.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1200.0, 1600.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1800.0, 1900.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(1800.0, 1600.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(2150.0, 1900.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+    Obstacle(position=Point2D(850.0, 1900.0), obstacle_type=ObstacleType.FIXED_OBSTACLE),
+]
+
 """obstacles = [
     [80, 542],[80, 442],[80, 342],[80, 242],[630, 242],[730, 242],[830, 242],[930, 242],
     [80, 1165],[80,1265],[80,1365],[80, 1465],[2080, 250],[2180, 250],[2280, 250],[2380, 250],
@@ -1389,12 +1423,15 @@ def initialize_tasks():
     global yellow_tasks
     global true_blue_tasks
     global true_yellow_tasks
-    
+    global fixed_inside_prohibted_zone_area_of_blue
+    global fixed_inside_prohibted_zone_area_of_yellow
     if robot_color == "blue":
+        obstacle_positions.extend(fixed_inside_prohibted_zone_area_of_yellow)
         available_tasks = blue_tasks
         true_tasks = true_blue_tasks
         print("initializing blue tasks")
     elif robot_color == "yellow":
+        obstacle_positions.extend(fixed_inside_prohibted_zone_area_of_blue) 
         available_tasks = yellow_tasks
         true_tasks = true_yellow_tasks    
         print("initializing yellow tasks")
