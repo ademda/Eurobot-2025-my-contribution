@@ -131,7 +131,7 @@ we use them to transition between states
 ##################################### GLOBAL VARIABLES ####################################
 ####GLOBAL VARIABLES#####
 TOTAL_PLAYING_TIME = 140 #was 100 1000 for simulation#in seconds 40 just for test need to return it to 100
-BACKWARDS_AFTER_STOP_DISTANCE_THRESHOLD = 250 #in mm
+BACKWARDS_AFTER_STOP_DISTANCE_THRESHOLD = 100 #in mm
 publishers_instance = None
 subscribers_instance = None
 clients_instance = None
@@ -463,7 +463,7 @@ class MoveOn(smach.State):
             return 'Go to: MoveOn'
         
         if next_task.type == TaskType.RETURN_TO_FINISH_SPOT.value : 
-            while current_playing_time < 140: # was 90 # was 91 before simulation
+            while current_playing_time < 130: # was 90 # was 91 before simulation
                 time.sleep(0.5)
                 print("waiting for PAMIS to leave")
 
@@ -1212,8 +1212,8 @@ class BackWardsAfterStop(smach.State):
             backwards_after_stop_flag = True
             backwards_after_stop_only_once_flag = True
             return 'Go to: MoveOn'
-        
-        get_backwards_point_after_stop()
+        traveled_distance_to_send = check_traveled_distance()
+        get_backwards_point_after_stop(traveled_distance_to_send)
         print(f"nav_target_x: {backwards_point_after_stop.position.x}")
         print(f"nav_target_y: {backwards_point_after_stop.position.y}")
         print(f"nav_target_angle: {backwards_point_after_stop.position.theta}")
@@ -1432,7 +1432,7 @@ class GetBackwardsPointAfterStopClient(Node):
             self.get_logger().info('Get Backwards Task Point After Stop Service not available, waiting again...')
         self.get_logger().warn('Get Backwards Task Point After Stop Service is available, ready to send request!')
 
-    def send_request(self):
+    def send_request(self ,distance: float):
         global current_position
         global robot_direction
         global next_task
@@ -1445,7 +1445,7 @@ class GetBackwardsPointAfterStopClient(Node):
         request.nav_is_forward = robot_direction
         request.task_type = TaskType.NORMAL_NAV.value
         request.nav_is_with_platforms = next_task.is_with_platforms
-
+        request.distance = distance
 
         self.get_logger().info('Sending request for backwards after stop point...')
 
@@ -1796,9 +1796,9 @@ def get_next_subtask():
 
 ########################################## COMMUNICATION FUNCTIONS ############################################
 
-def get_backwards_point_after_stop():
+def get_backwards_point_after_stop(distance : float):
     global clients_instance
-    clients_instance.get_backwards_point_after_stop_client.send_request()
+    clients_instance.get_backwards_point_after_stop_client.send_request(distance)
 
 def get_next_task_point():
     global clients_instance
