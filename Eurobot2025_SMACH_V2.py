@@ -130,7 +130,8 @@ we use them to transition between states
     """
 ##################################### GLOBAL VARIABLES ####################################
 ####GLOBAL VARIABLES#####
-TOTAL_PLAYING_TIME = 1000 #was 100 1000 for simulation#in seconds 40 just for test need to return it to 100
+TOTAL_PLAYING_TIME = 140 #was 100 1000 for simulation#in seconds 40 just for test need to return it to 100
+BACKWARDS_AFTER_STOP_DISTANCE_THRESHOLD = 250 #in mm
 publishers_instance = None
 subscribers_instance = None
 clients_instance = None
@@ -142,10 +143,12 @@ current_playing_time = 0
 current_subtask_order = 0
 next_subtask_order = 0
 estimated_score = 0
+
 backwards_after_stop_only_once_flag = False #this flag is used to only request backwards point one time between tasks
 backwards_after_stop_flag = False # this flas is used to know if my latest movement was because of backwards_point request
 backwards_point_after_stop = None
 robot_direction = True
+last_task = None
 return_to_finish_spot_flag = False
 jack_state = False
 currently_doing_subtask = None #The differnce between current task and currently_doing_subtask is that even if current task is 
@@ -379,6 +382,8 @@ class Init(smach.State):
         global MASTER_SMachineCurrentState_en
         global communication_wait_time
         global init_position
+        global last_task
+        last_task = Pose2D(x = init_position.nav_target_x, y = init_position.nav_target_y, theta = init_position.nav_target_angle)
         signal.signal(signal.SIGINT, exit_handler)
         send_target_order(init_position)
         time.sleep(0.5)
@@ -425,6 +430,7 @@ class MoveOn(smach.State):
         global communication_wait_time
         global current_task
         global next_task
+        global last_task
         global current_subtask_order
         global next_subtask_order
         global currently_doing_subtask 
@@ -438,6 +444,9 @@ class MoveOn(smach.State):
         currently_doing_subtask = TaskType.NORMAL_NAV.value
         signal.signal(signal.SIGINT, exit_handler)
         get_next_task_point()
+        print("last_task_x", last_task.x)
+        print("last_task_y", last_task.y)
+        print("##################################")
         #print("Nav Roder Details:")
         print(f"nav_target_x: {next_task.position.x}")
         print(f"nav_target_y: {next_task.position.y}")
@@ -454,7 +463,7 @@ class MoveOn(smach.State):
             return 'Go to: MoveOn'
         
         if next_task.type == TaskType.RETURN_TO_FINISH_SPOT.value : 
-            while current_playing_time < 160: # was 90 # was 91 before simulation
+            while current_playing_time < 140: # was 90 # was 91 before simulation
                 time.sleep(0.5)
                 print("waiting for PAMIS to leave")
 
@@ -541,6 +550,7 @@ class DestinationReached(smach.State):
         global communication_wait_time
         global current_task
         global next_task
+        global last_task
         global backwards_after_stop_flag
         global backwards_point_after_stop
         global backwards_after_stop_only_once_flag
@@ -548,8 +558,8 @@ class DestinationReached(smach.State):
         time.sleep(0.05)
         order_finish_stop()
         send_acknowledge_signal()
-        print("backwards_after_stop_flag", backwards_after_stop_flag)
-        print("backwards_after_stop_only_once_flag", backwards_after_stop_only_once_flag)
+        #print("backwards_after_stop_flag", backwards_after_stop_flag)
+        #print("backwards_after_stop_only_once_flag", backwards_after_stop_only_once_flag)
         if backwards_after_stop_flag == True :
             current_task = backwards_point_after_stop
         else :    
@@ -577,6 +587,7 @@ class DestinationReached(smach.State):
             else:
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
                 backwards_after_stop_flag = False
+                last_task = Pose2D(x = current_task.position.x,y = current_task.position.y,theta = current_task.position.theta)
                 return 'Go to: MoveOn'
 
         else:
@@ -626,6 +637,7 @@ class Building_PickUp_MoveOn(smach.State):
         global return_to_finish_spot_flag
         global publishers_instance
         global robot_direction
+        global last_task
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
@@ -650,6 +662,7 @@ class Building_PickUp_MoveOn(smach.State):
             return 'Go to: Building_PickUp_DestinationReached'
 
         elif(response.nav_target_x != 0.0 or response.nav_target_y != 0.0): 
+            last_task = Pose2D(x = response.nav_target_x,y = response.nav_target_y,theta = response.nav_target_angle)
             nav_order = convert_next_subtask_to_nav_order(response)
             print("Nav Roder Details: direction", response.nav_is_forward)
             send_target_order(nav_order)
@@ -781,6 +794,7 @@ class Building_DropDown_MoveOn(smach.State):
         global estimated_score
         global publishers_instance
         global robot_direction
+        global last_task
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
@@ -797,6 +811,7 @@ class Building_DropDown_MoveOn(smach.State):
             return 'Go to: Building_DropDown_DestinationReached'
         
         elif(response.nav_target_x != 0.0 or response.nav_target_y != 0.0): 
+            last_task = Pose2D(x = response.nav_target_x,y = response.nav_target_y,theta = response.nav_target_angle)
             nav_order = convert_next_subtask_to_nav_order(response)
             print("Nav Roder Details: direction", response.nav_is_forward)
             send_target_order(nav_order)
@@ -927,6 +942,7 @@ class Bonderole_Pose_MoveOn(smach.State):
         global estimated_score
         global publishers_instance
         global robot_direction
+        global last_task
         signal.signal(signal.SIGINT, exit_handler)
         time.sleep(0.05)
         order_finish_stop()
@@ -944,6 +960,7 @@ class Bonderole_Pose_MoveOn(smach.State):
             return 'Go to: Bonderole_Pose_DestinationReached'
         
         elif(response.nav_target_x != 0.0 or response.nav_target_y != 0.0):
+            last_task = Pose2D(x = response.nav_target_x,y = response.nav_target_y,theta = response.nav_target_angle)
             nav_order = convert_next_subtask_to_nav_order(response)
             print("Nav Roder Details: direction", response.nav_is_forward)
             send_target_order(nav_order)
@@ -1164,7 +1181,7 @@ class ConfirmedStop(smach.State):
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_Bonderole_Pose_MoveOn_en
                 return 'Go to: Bonderole_Pose_MoveOn'
         else:
-            if currently_doing_subtask == TaskType.NORMAL_NAV.value and backwards_after_stop_only_once_flag == False:
+            if currently_doing_subtask == TaskType.NORMAL_NAV.value and backwards_after_stop_only_once_flag == False and (check_traveled_distance() >= BACKWARDS_AFTER_STOP_DISTANCE_THRESHOLD):
                 MASTER_SMachineCurrentState_en = MASTER_SMachineStates_ten.MASTER_SMachine_MoveOn_en
                 return 'Go to: BackWardsAfterStop'
             else :
@@ -1734,6 +1751,20 @@ def return_to_finish_spot_checker():
         print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")"""
         return_to_finish_spot_flag = True #to disable this shit need to return it to True
 
+def check_traveled_distance():
+    global current_position
+    global last_task
+    if current_position is not None and last_task is not None:
+        dx = current_position.x - last_task.x
+        dy = current_position.y - last_task.y
+        distance = (dx**2 + dy**2)**0.5
+        print(f"Distance traveled: {distance}")
+        return distance
+    else:
+        print("Current position or last task position is not set.")
+        return 0
+    
+    
 ########################################## SUBTASK FUNCTION  ############################################
 
 def get_next_subtask():
