@@ -284,13 +284,14 @@ class GetBackwardsPointAfterStopService(Node):
         global path_planner_instance
         current_position = Pose2D(x=request.nav_target_x, y=request.nav_target_y, theta=request.nav_target_angle)
         current_direction = request._nav_is_forward
+        traveled_distance = request.distance
         self.get_logger().info('Got a request about next task... Now sending a response')
         get_map_state()
         print("got the map state")
         #next_task = get_next_task(request.task_id) #heer i changed to returning the next
         #available task in teh available_tasks list
         response = GetBackwardsPoint.Response()  
-        backwards_point = path_planner_instance.get_backwards_point(current_position, current_direction)
+        backwards_point = path_planner_instance.get_backwards_point(current_position, current_direction, traveled_distance)
         response.task_id = request.task_id
         response.nav_target_x = backwards_point.x
         response.nav_target_y= backwards_point.y
@@ -333,11 +334,17 @@ class GetNextTaskPointService(Node):
         #next_task = get_next_task(request.task_id) #heer i changed to returning the next
         #available task in teh available_tasks list
         response = GetNextTaskPoint.Response()
-        if request.task_id == -1000:
+        if request.task_id == -1000 or (available_tasks[0]).type == TaskType.RETURN_TO_FINISH_SPOT.value:
             print("HEEEEEERE")
             next_task = find_finished_task()
+            intermediate_point = Pose2D(x=next_task.position.x, y=next_task.position.y, theta=next_task.position.theta)
+            response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
+            path_msg=convert_path_to_path_msg([intermediate_point])
+            publishers_instance.strategy_rrt_path_publisher.strategy_rrt_path_publisher.publish(path_msg)
+            return response
         else:    
             next_task = available_tasks[0]   
+            
         if rrt_failure_counter >= 4 and next_task.type == TaskType.BUILDING_PICKUP.value:
             print("rrt failure counter is too high")
             clients_instance.switch_task_client.send_request(next_task)

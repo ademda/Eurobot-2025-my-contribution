@@ -45,7 +45,8 @@ Functions:
 
 
 """
-
+#### SHOULD BE AWARE TO NOT ATTRIBUTE TO ONE OF THE TARGET COORDINATES 0.0 make it 1.0 or something otherwise when doing subtask the robot won't sendnav_order 
+#### CHECK THE TASK STATE MACHIINE TO KNOW WHY
 import rclpy
 import logging
 import threading
