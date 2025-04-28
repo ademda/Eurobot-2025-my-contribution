@@ -328,10 +328,16 @@ class PathPlanner:
             intermediate_point = self.get_intermediate_point(current_position, target_position, obstacle_position)
             return [current_position, intermediate_point , target_position]
         
-    def get_backwards_point(self, current_position: Pose2D, current_direction : bool) -> Pose2D :
+    def get_backwards_point(self, current_position: Pose2D, current_direction : bool, traveled_distance:float) -> Pose2D :
         global robot_radius
         backwards_circle_center = current_position
-        backwards_circle_radius = robot_radius + 50
+        if traveled_distance >= 250.0 :
+            backwards_circle_radius = robot_radius + 50
+            print("Returning the normal radius")
+        else :
+            backwards_circle_radius = int(traveled_distance)
+            print("Returning distance of ",traveled_distance)
+            print("##############")
         
         direction_vector = [math.cos(math.radians(current_position.theta)), math.sin(math.radians(current_position.theta))]
 
