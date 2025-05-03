@@ -328,18 +328,27 @@ class GetNextTaskPointService(Node):
         global current_position
         global enemy_position
         global publishers_instance
+        global path_planner_instance
         global rrt_failure_counter 
         self.get_logger().info('Got a request about next task... Now sending a response')
         get_map_state()
+        rrt_obstacles = convert_obstacles_to_rrt_argument(obstacle_positions)
         #next_task = get_next_task(request.task_id) #heer i changed to returning the next
         #available task in teh available_tasks list
         response = GetNextTaskPoint.Response()
         if request.task_id == -1000 or (available_tasks[0]).type == TaskType.RETURN_TO_FINISH_SPOT.value:
             print("HEEEEEERE")
             next_task = find_finished_task()
-            intermediate_point = Pose2D(x=next_task.position.x, y=next_task.position.y, theta=next_task.position.theta)
-            response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
-            path_msg=convert_path_to_path_msg([intermediate_point])
+            if path_planner_instance.can_go_directly_to_target(current_position, next_task.position, rrt_obstacles, enemy_position):
+                print("can go directly to FINISH SPOT ")
+                intermediate_point = Pose2D(x=next_task.position.x, y=next_task.position.y, theta=next_task.position.theta)
+                response = convert_intermediate_point_to_response_msg(intermediate_point, response, next_task)
+                path_msg=convert_path_to_path_msg([intermediate_point])
+            else :
+                print("can't go directly to FINISH SPOT will return the rrt failure flag")
+                rrt_failure_flag = Pose2D(x = -1.0, y = -1.0, theta = 0.0)
+                response = convert_intermediate_point_to_response_msg(rrt_failure_flag, response, next_task)     
+                path_msg=convert_path_to_path_msg([rrt_failure_flag])
             publishers_instance.strategy_rrt_path_publisher.strategy_rrt_path_publisher.publish(path_msg)
             return response
         else:    
@@ -362,7 +371,6 @@ class GetNextTaskPointService(Node):
         next_task_position = Pose2D(x=next_task.position.x, y=next_task.position.y, theta=next_task.position.theta)
         enemy_position = Pose2D(x=enemy_position.x, y=enemy_position.y, theta=enemy_position.theta)
         #here the static task generator node should return the right obstacle positions based on the robot color  
-        rrt_obstacles = convert_obstacles_to_rrt_argument(obstacle_positions)
         path = get_path_from_rrt(current_position, next_task_position, rrt_obstacles, enemy_position)
         if len(path) >=2:
             intermediate_point = path[1]
@@ -452,11 +460,6 @@ def convert_path_to_path_msg(path: List[Pose2D]):
         pose = Pose2D(x=point.x, y=point.y, theta=point.theta)  # Directly using Pose2D attributes
         path_msg.path.append(pose)
     return path_msg
-
-def get_backwards_point(current_position: Pose2D, current_direction : bool):
-    global path_planner_instance
-    backwards_point = path_planner_instance.get_backwards_point(current_position, current_direction)
-    return backwards_point
 
 def get_path_from_rrt(start_pos, goal_pos, obstacles_position, enemy_robot_position):    
     global path_planner_instance
