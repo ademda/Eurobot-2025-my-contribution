@@ -1248,7 +1248,8 @@ class NavigatorStateSubscriber(Node):
         global current_navigator_state
         #self.get_logger().info('NavigatorStateSubscriber node has been started.')
         # Assign the received value to the global variable
-        current_navigator_state = msg.data       
+        current_navigator_state = msg.data   
+        print("navigator state:",current_navigator_state)    
 
        
 ########################################## CLIENTS CLASSES ##############################################
@@ -1296,7 +1297,7 @@ class GetNextTaskPointClient(Node):
         global current_task
         global next_task
         global return_to_finish_spot_flag
-        return_to_finish_spot_checker()
+        #return_to_finish_spot_checker() commented this so it doesnt return from abd poistion
         request = GetNextTaskPoint.Request()  # Create a request object
         
         self.get_logger().info('Sending request for next task point...')
