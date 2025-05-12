@@ -13,7 +13,7 @@ class LidarReader(Node):
     def __init__(self):
         super().__init__('Lidar_Reader')
         #self.declare_parameter('Enemy_X', 0.0)
-#        self.declare_parameter('Enemy_Y', 0.0)
+        #self.declare_parameter('Enemy_Y', 0.0)
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             depth=10
@@ -49,7 +49,7 @@ class LidarReader(Node):
 
         # Initialize navigation parameters
         self.nav_current_x = 1.2
-        self.nav_current_y = 0.275
+        self.nav_current_y = 0.195 #0.315
         self.nav_current_angle = 90.0
         self.robot_current_state = 0
         self.ObstacleDetected = False
@@ -63,9 +63,9 @@ class LidarReader(Node):
             self.nav_current_x = msg.nav_target_x / 1000
             self.nav_current_y = msg.nav_target_y / 1000
             self.nav_current_angle = msg.nav_target_angle
-            self.get_logger().info(f'Initialized nav_current_x: {self.nav_current_x}')
-            self.get_logger().info(f'Initialized nav_current_y: {self.nav_current_y}')
-            self.get_logger().info(f'Initialized nav_current_angle: {self.nav_current_angle}')
+            #self.get_logger().info(f'Initialized nav_current_x: {self.nav_current_x}')
+            #self.get_logger().info(f'Initialized nav_current_y: {self.nav_current_y}')
+            #self.get_logger().info(f'Initialized nav_current_angle: {self.nav_current_angle}')
             self.counter += 1
 
     def jack_signal_callback(self, msg):
@@ -80,20 +80,20 @@ class LidarReader(Node):
                 self.nav_current_x = msg.nav_current_x / 1000
                 self.nav_current_y = msg.nav_current_y / 1000
                 self.nav_current_angle = msg.nav_current_angle
-                print("x from lidar",self.nav_current_x)
-                print("y from lidar",self.nav_current_y)
+                #print("x from lidar",self.nav_current_x)
+                #print("y from lidar",self.nav_current_y)
             else:
                 self.nav_current_x = 1.2
-                self.nav_current_y = 0.275
+                self.nav_current_y = 0.195 #0.325
                 self.nav_current_angle = 90.0
             #self.nav_current_x = msg.nav_current_x / 1000
             #self.nav_current_y = msg.nav_current_y / 1000
             #self.nav_current_angle = msg.nav_current_angle    
-            print("x from lidar",self.nav_current_x)
-            print("y from lidar",self.nav_current_y)    
-            self.get_logger().info(f'Received nav_current_x: {self.nav_current_x}')
-            self.get_logger().info(f'Received nav_current_y: {self.nav_current_y}')
-            self.get_logger().info(f'Received nav_current_angle: {self.nav_current_angle}')
+            #print("x from lidar",self.nav_current_x)
+            #print("y from lidar",self.nav_current_y)    
+            #self.get_logger().info(f'Received nav_current_x: {self.nav_current_x}')
+            #self.get_logger().info(f'Received nav_current_y: {self.nav_current_y}')
+            #self.get_logger().info(f'Received nav_current_angle: {self.nav_current_angle}')
         except IndexError as e:
             self.get_logger().error(f"Message format error: {e}")
 
@@ -122,7 +122,7 @@ class LidarReader(Node):
 
             self.get_logger().info(f"ClosestObstacle Map Coordinates: X={ClosestObstacle_X_Map}, Y={ClosestObstacle_Y_Map}")
             self.get_logger().info(f"valeur minimale: {min_value}")
-            if (min_value > 0.2) and (min_value < 0.50) and (0 < ClosestObstacle_X_Map < 3) and (0 < ClosestObstacle_Y_Map < 2):#was 0.45
+            if (min_value > 0.15) and (min_value < 0.45) and (0 < ClosestObstacle_X_Map < 3) and (0 < ClosestObstacle_Y_Map < 2):#was 0.5 min value was 0.2
                 self.ObstacleDetected = True
                 self.get_logger().info('Obstacle Detected!')
                 self.obstacle_enemy_pub.publish(Bool(data=True))
