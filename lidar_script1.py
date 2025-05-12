@@ -13,7 +13,7 @@ class LidarReader(Node):
     def __init__(self):
         super().__init__('Lidar_Reader')
         #self.declare_parameter('Enemy_X', 0.0)
-#        self.declare_parameter('Enemy_Y', 0.0)
+        #self.declare_parameter('Enemy_Y', 0.0)
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             depth=10
