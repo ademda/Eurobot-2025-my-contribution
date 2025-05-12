@@ -184,6 +184,8 @@ def command_mechanism(next_subtask):
         print("NOOOOOOW DOIIIIING hold cans subtask")
         mechanism_instance.hold_cans()
         mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS.value
+        mechanism_state.first_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value
+        mechanism_state.second_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value 
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.DROP_CANS.value and mechanism_state.cans_state != MachanismSubTaskType.DROP_CANS.value):
         mechanism_instance.place_first_cans()
         mechanism_state.cans_state = MachanismSubTaskType.DROP_CANS.value
@@ -200,9 +202,11 @@ def command_mechanism(next_subtask):
         mechanism_instance.release_bonderole_servo()
         mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value
         mechanism_instance.hold_cans()
-        mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS        
+        mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS.value       
+        mechanism_state.first_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value
+        mechanism_state.second_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value 
         mechanism_instance.deploy_forklift()
-        mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS
+        mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS.value
 
 
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.HOLD_UPPER_PLANK.value):
@@ -214,43 +218,36 @@ def command_mechanism(next_subtask):
         mechanism_instance.hold_bonderole_servo()        
         mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value    
 
-    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BUILD_FIRST_AND_SECOND_FLOOR and mechanism_state.rotating_servos_state != MachanismSubTaskType.ROTATED_SERVOS.value):
-        if mechanism_state.first_floor_cans_state != MachanismSubTaskType.DROP_CANS.value :
-            mechanism_instance.place_first_cans_second_mecanism()
-            mechanism_state.first_floor_cans_state = MachanismSubTaskType.DROP_CANS.value
-            mechanism_state.rotating_servos_state = MachanismSubTaskType.ROTATED_SERVOS.value
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BUILD_FIRST_AND_SECOND_FLOOR.value ):
+        mechanism_instance.hold_plank()
+        mechanism_instance.lift_planks_alot()
+        mechanism_state.ventouse_state = MachanismSubTaskType.HOLD_UPPER_PLANK.value   
+        mechanism_state.fork_lift_state = MachanismSubTaskType.ELEVATE_PLANKS_ALOT.value
+
+        mechanism_instance.place_first_cans_second_mecanism()
+        mechanism_state.first_floor_cans_state = MachanismSubTaskType.DROP_CANS.value
+        mechanism_state.rotating_servos_state = MachanismSubTaskType.ROTATED_SERVOS.value
             
-        if mechanism_state.ventouse_state != MachanismSubTaskType.HOLD_UPPER_PLANK.value and mechanism_state.fork_lift_state != MachanismSubTaskType.ELEVATE_PLANKS_ALOT.value:
-            mechanism_instance.hold_plank()
-            mechanism_state.ventouse_state = MachanismSubTaskType.HOLD_UPPER_PLANK.value   
-            mechanism_state.fork_lift_state = MachanismSubTaskType.ELEVATE_PLANKS_ALOT.value
+        mechanism_instance.place_first_plank_and_pick_last_cans_second_mecanism()
+        mechanism_state.servos_elevating_system_state = MachanismSubTaskType.ELEVATED_SERVOS.value
+        mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS.value
 
-        if  mechanism_state.servos_elevating_system_state != MachanismSubTaskType.ELEVATED_SERVOS.value and mechanism_state.fork_lift_state != MachanismSubTaskType.LOWER_PLANKS.value:
-            mechanism_instance.place_first_plank_and_pick_last_cans_second_mecanism()
-            mechanism_state.servos_elevating_system_state = MachanismSubTaskType.ELEVATED_SERVOS.value
-            mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS.value
+        mechanism_instance.place_last_cans_and_second_plank()
+        mechanism_state.rotating_servos_state = MachanismSubTaskType.NON_ROTATED_SERVOS.value            
+        mechanism_state.second_floor_cans_state = MachanismSubTaskType.DROP_CANS.value
+        mechanism_state.ventouse_state = MachanismSubTaskType.RELEASE_UPPER_PLANK.value
 
-        if  mechanism_state.rotating_servos_state != MachanismSubTaskType.NON_ROTATED_SERVOS.value and mechanism_state.second_floor_cans_state != MachanismSubTaskType.DROP_CANS.value and mechanism_state.ventouse_state != MachanismSubTaskType.RELEASE_UPPER_PLANK.value:
-            mechanism_instance.place_last_cans_and_second_plank()
-            mechanism_state.rotating_servos_state = MachanismSubTaskType.NON_ROTATED_SERVOS.value            
-            mechanism_state.second_floor_cans_state = MachanismSubTaskType.DROP_CANS.value
-            mechanism_state.ventouse_state = MachanismSubTaskType.RELEASE_UPPER_PLANK.value
-
-    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.RESET_MECHANISM_AFTER_BUILDING and 
-          mechanism_state.rotating_servos_state != MachanismSubTaskType.ROTATED_SERVOS.value and 
-          mechanism_state.servos_elevating_system_state != MachanismSubTaskType.LOWERED_SERVOS.value 
-          ):#here maybe i need servos with aimant state
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.RESET_MECHANISM_AFTER_BUILDING.value ):#here maybe i need servos with aimant state
         mechanism_instance.finish_building()
         mechanism_state.rotating_servos_state = MachanismSubTaskType.ROTATED_SERVOS.value    
         mechanism_state.servos_elevating_system_state = MachanismSubTaskType.LOWERED_SERVOS.value
-        mechanism_state.first_floor_cans_state = MachanismSubTaskType.DROP_CANS.value
-        mechanism_state.second_floor_cans_state = MachanismSubTaskType.DROP_CANS.value
+        mechanism_state.cans_state = MachanismSubTaskType.DROP_CANS.value
 
-    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.HOLD_BUILDING):
-            if mechanism_state.first_floor_cans_state != MachanismSubTaskType.GRAB_CANS.value and mechanism_state.second_floor_cans_state != MachanismSubTaskType.GRAB_CANS.value:
-                mechanism_instance.hold_cans()
-                mechanism_state.first_floor_cans_state = MachanismSubTaskType.GRAB_CANS
-                mechanism_state.second_floor_cans_state = MachanismSubTaskType.GRAB_CANS
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.HOLD_BUILDING.value):
+        mechanism_instance.hold_cans()
+        mechanism_state.first_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value
+        mechanism_state.second_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value
+        mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS.value
     
     else:
         print("Error: Mechanism subtask type not recognized")
