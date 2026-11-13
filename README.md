@@ -189,6 +189,6 @@ We remember the tests that sent us back to the drawing board, the relief when a 
   <br><em>Sharing the experience with people who understand the same joy of building robots.</em>
 </p>
 
-We are grateful to everyone who designed, built, tested, encouraged, and traveled with us, and to our academic supervisor, **Mr. Mourad Moussa**, for his guidance. Alongside the technical lessons, we brought home the joy of working together, meeting other teams, and sharing a project that had become part of our lives.
+We are grateful to everyone who designed, built, tested, encouraged, and traveled with us. Alongside the technical lessons, we brought home the joy of working together, meeting other teams, and sharing a project that had become part of our lives.
 
 **The show must go on. We are glad we got to build our part of it together.**
