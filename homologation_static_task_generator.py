@@ -1,49 +1,65 @@
 """
-Author: <Adem Daly>
-
+Author: Adem Daly
+###ALERT: THIS IS NOT THE CODE USED IN THE GAMES BUT THE DOCUMENTAION IS VALID, YOU CAN REFER TO THE CODE IN THE OTHER FOLDER SHARED WITH YOU###
 Description:
-    This module is responsible for : 
-        -Generating available tasks for the robot to perform
-        -Generating Obstacle positions
+    This module is responsible for:
+        - This executable is used for homologation test: we only generate building  floor tasks
+        - Generating and managing available tasks for the robot to perform.
+        - Generating and updating obstacle positions on the map.
+        - Handling dynamic updates to tasks and obstacles based on the robot's and enemy's positions.
+        - Providing ROS2 services and subscribers for task and map state management.
 
-Note:
-    - The available tasks are generated based on the the enemy robot position and a request from the stateamchine to remove a stask 
-    my robot completetd
-    - The obstacle positions are generated based on the enemy robot position and the current robot position
-    - if the enmy crosses a task of type pick up :i replace it wil the next pickup task in teh available tasks list and remvoe the last dropdown task in the list
-    
+Key Features:
+    - Tasks are dynamically updated based on enemy robot position and state machine requests (e.g., when a task is completed).
+    - Obstacle positions are updated based on both the enemy and the robot's current positions.
+    - If the enemy crosses a pickup task, the task is replaced with the next available pickup, and the last dropdown task is removed.
+    - ROS2 services are provided for getting the map state, deleting tasks, and retrieving the true task list.
+    - ROS2 subscribers are used for robot color, position, enemy position, and current task updates.
+
 Enums:
-    - TaskType(Enum): Enum class for the type of the task
-    - SpeedChoice(Enum): Enum class for the speed choice of the task
-    - TaskTypeScore(Enum): Enum class for the score of the task
-    - SubTaskType(Enum): Enum class for the type of the subtask
-    - MachanismSubTaskType(Enum): Enum class for the type of the mechanism subtask
-    - ObstacleType(Enum): Enum class for the type of the obstacle
-    - Direction(Enum): Enum class for the direction of the robot when performing the task or in normal navigation
+    - TaskType: Type of the task (e.g., navigation, pickup, dropdown).
+    - SpeedChoice: Speed options for navigation.
+    - TaskTypeScore: Score values for different task types.
+    - SubTaskType: Type of subtask (navigation or mechanism).
+    - MachanismSubTaskType: Specific mechanism actions.
+    - ObstacleType: Type of obstacle (building, enemy, etc.).
+    - Direction: Direction of robot movement for a task.
+    - IS_WITH_PLATFORMS: Indicates if the robot is with platforms.
 
 Classes:
-    - Task: Class for the task
-    - SubTask(ABC): Abstract class for the subtask
-    - NavSubTask(SubTask): Class for the navigation subtask
-    - MechanismSubTask(SubTask): Class for the mechanism subtask
-    - DoubleBuildingDropDownArea: Class for the drop down area that can support two buildings /still didn't use it
-    - SingleBuildingDropDownArea: Class for the drop down area that can support one building /still didn't use it
-    - BuildingPickUpArea: Class for the pick up area of the building /still didn't use it
-    - Obstacle: Class for the obstacle /still didn't use it
-    - Services: Class for the services:
-        - GetAvailableTasksService: Class for the get available tasks service 
-        it has connections with the nodes:subtask_generator,strategy_server
-        - GetMapStateService: Class for the get map state service    
-        -DeleteTaskService: Class for the delete task service
-    - Subscribers: Class for the subscribers:
-        - Enemy_Robot_Position_Subscriber: Class for the enemy robot position subscriber
-        - My_Robot_Position_Subscriber: Class for the my robot position subscriber
+    - Point2D: Simple 2D point representation.
+    - Task: Represents a complete task with navigation and mechanism subtasks.
+    - SubTask (ABC): Abstract base class for subtasks.
+    - NavSubTask: Navigation subtask.
+    - MechanismSubTask: Mechanism subtask.
+    - DoubleBuildingDropDownArea: (Not used) Area supporting two buildings.
+    - SingleBuildingDropDownArea: (Not used) Area supporting one building.
+    - BuildingPickUpArea: (Not used) Area for building pickup.
+    - Obstacle: Represents an obstacle on the map.
+    - MapStateUpdater: Node for updating tasks and obstacles based on positions.
+    - Services: Container for ROS2 service nodes.
+    - DeleteTaskService: Service for deleting a task.
+    - GetMapStateService: Service for providing the current map state.
+    - TrueTasksPLacesService: Service for providing the true task list.
+    - Subscribers: Container for ROS2 subscriber nodes.
+    - EnemyRobotPositionSubscriber: Subscribes to enemy robot position.
+    - RobotColorSubscriber: Subscribes to robot color and initializes tasks.
+    - MyRobotPositionSubscriber: Subscribes to the robot's own position.
+    - CurrentTaskSubscriber: Subscribes to the current task state.
+
 Functions:
-    - convert_to_subtask_list_msg(subtask_list: List['SubTask']) -> List[SubTaskMsg]: Function to convert the subtask list 
-    to a list of subtask messages
-    - communication_instances_init(): Function to initialize the communication instances
+    - communication_instances_init(): Initializes all communication nodes.
+    - display_available_tasks(): Prints available tasks for debugging.
+    - find_equivalent_task(index): Finds the corresponding task in available_tasks.
+    - find_equivalent_true_task(index): Finds the corresponding task in true_tasks.
+    - calculate_distance(obstacle1, obstacle2): Calculates Euclidean distance between two obstacles.
+    - convert_to_subtask_list_msg(subtask_list): Converts a list of SubTask objects to ROS messages.
+    - initialize_tasks(): Initializes tasks and obstacles based on robot color.
+    - main(): Entry point for running the ROS2 nodes.
 
-
+Note:
+    - Task and obstacle lists are updated in real-time based on robot and enemy actions.
+    - Some classes (e.g., DoubleBuildingDropDownArea) are defined for future use but not currently utilized.
 """
 
 import rclpy

@@ -23,38 +23,33 @@ Functions:
 
 """
 import rclpy
-import time
-import threading
 from mecanisme.mechanism_1 import FirstMechanism
 from rclpy.node import Node
 from enum import Enum
 from geometry_msgs.msg import Pose2D
-from std_msgs.msg import Bool
 from typing import List
 from typing import Tuple
-from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
 from ros_custom_messages.srv import GetMapState, GetNextSubTaskPoint
 from ros_custom_messages.msg import TaskMsg, SubTaskMsg, ObstacleMsg
 from strategy.static_task_generator import Task, SubTaskType, MachanismSubTaskType, MechanismSubTask, NavSubTask, TaskType, Direction, TaskTypeScore, SpeedChoice
 ################################## GLOBAL VARIABLES #############################
 mechanism_instance = None
 servers_instance = None
-subscribers_instance = None
 clients_instance = None
 available_tasks = []
-jack_state = False
+
 ###################################### MECHANSIM STATE CLASS #############################
 class MechanismState():
     def __init__(self):
         self.fork_lift_state = None
         self.bonderole_servo_state = None
         self.cans_state = None
-
+        self.first_floor_cans_state = None
+        self.second_floor_cans_state = None
+        self.ventouse_state = None
+        self.rotating_servos_state = None
+        self.servos_elevating_system_state = None
 ###################################### SERVERS CLASSES ###################################
-
-class Subscribers:
-    def __init__(self):
-        self.jack_state_subscriber = JackStateSubscriberSubStaticTaskGenerator()
 
 class Services:
     def __init__(self):
@@ -100,6 +95,11 @@ class GetNextSubTaskService(Node):
         print(request.current_subtask_order)
         print(request.current_task_id)
         current_index = request.current_subtask_order
+        if current_task is None:
+            self.get_logger().warn("Next subtask does not exist in the list.")
+            response.current_subtask_order = -1
+            self.get_logger().info(f'Returning special response for end of tasks: {response}')
+            return response  # <-- Make sure this return is here!
 
         if 0 <= current_index < len(current_task.subtask_list):
             next_subtask = current_task.subtask_list[current_index]
@@ -173,25 +173,6 @@ class GetMapStateClient(Node):
         else:
             print("No available tasks.")
  
-class JackStateSubscriberSubStaticTaskGenerator(Node):
-    def __init__(self):
-        super().__init__('jack_state_subscriber_sub_static_task_generation')
-        self.jack_state_subscriber = self.create_subscription(
-            Bool,'jack_signal',self.jack_signal_callback ,10
-        )
-        self.deploy_mechanism_counter = 0
-
-    def jack_signal_callback(self, msg): 
-        global jack_state
-        global mechanism_instance
-        global mechanism_state
-        jack_state = msg.data    
-        if jack_state == True and self.deploy_mechanism_counter == 0:
-            mechanism_instance.deploy_forklift()
-            mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS
-            mechanism_instance.hold_cans()
-            mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS
-            self.deploy_mechanism_counter = self.deploy_mechanism_counter + 1
 
 ################# SUBTASK HANDLING FUNCTIONS ###############
 
@@ -208,6 +189,8 @@ def command_mechanism(next_subtask):
         print("NOOOOOOW DOIIIIING hold cans subtask")
         mechanism_instance.hold_cans()
         mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS.value
+        mechanism_state.first_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value
+        mechanism_state.second_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value 
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.DROP_CANS.value and mechanism_state.cans_state != MachanismSubTaskType.DROP_CANS.value):
         mechanism_instance.place_first_cans()
         mechanism_state.cans_state = MachanismSubTaskType.DROP_CANS.value
@@ -223,9 +206,54 @@ def command_mechanism(next_subtask):
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value and mechanism_state.bonderole_servo_state != MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value):
         mechanism_instance.release_bonderole_servo()
         mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_REALEASE.value
+        mechanism_instance.hold_cans()
+        mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS.value       
+        mechanism_state.first_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value
+        mechanism_state.second_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value 
+        mechanism_instance.deploy_forklift()
+        mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS.value
+
+
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.HOLD_UPPER_PLANK.value):
+        if mechanism_state.fork_lift_state != MachanismSubTaskType.HOLD_UPPER_PLANK.value:
+            mechanism_instance.hold_plank()
+            mechanism_state.fork_lift_state = MachanismSubTaskType.HOLD_UPPER_PLANK.value
+
     elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value and mechanism_state.bonderole_servo_state != MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value):
         mechanism_instance.hold_bonderole_servo()        
         mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD.value    
+
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.BUILD_FIRST_AND_SECOND_FLOOR.value ):
+        mechanism_instance.hold_plank()
+        mechanism_instance.lift_planks_alot()
+        mechanism_state.ventouse_state = MachanismSubTaskType.HOLD_UPPER_PLANK.value   
+        mechanism_state.fork_lift_state = MachanismSubTaskType.ELEVATE_PLANKS_ALOT.value
+
+        mechanism_instance.place_first_cans_second_mecanism()
+        mechanism_state.first_floor_cans_state = MachanismSubTaskType.DROP_CANS.value
+        mechanism_state.rotating_servos_state = MachanismSubTaskType.ROTATED_SERVOS.value
+            
+        mechanism_instance.place_first_plank_and_pick_last_cans_second_mecanism()
+        mechanism_state.servos_elevating_system_state = MachanismSubTaskType.ELEVATED_SERVOS.value
+        mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS.value
+
+        mechanism_instance.place_last_cans_and_second_plank()
+        mechanism_state.rotating_servos_state = MachanismSubTaskType.NON_ROTATED_SERVOS.value            
+        mechanism_state.second_floor_cans_state = MachanismSubTaskType.DROP_CANS.value
+        mechanism_state.ventouse_state = MachanismSubTaskType.RELEASE_UPPER_PLANK.value
+
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.RESET_MECHANISM_AFTER_BUILDING.value ):#here maybe i need servos with aimant state
+        mechanism_instance.finish_building()
+        mechanism_state.rotating_servos_state = MachanismSubTaskType.ROTATED_SERVOS.value    
+        mechanism_state.servos_elevating_system_state = MachanismSubTaskType.LOWERED_SERVOS.value
+        mechanism_state.cans_state = MachanismSubTaskType.DROP_CANS.value
+
+    elif (next_subtask.mechanism_subtask_type == MachanismSubTaskType.HOLD_BUILDING.value):
+        mechanism_instance.hold_cans()
+        mechanism_state.first_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value
+        mechanism_state.second_floor_cans_state = MachanismSubTaskType.GRAB_CANS.value
+        mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS.value
+    
     else:
         print("Error: Mechanism subtask type not recognized")
 
@@ -235,10 +263,8 @@ def command_mechanism(next_subtask):
 def communication_instances_init():
     global clients_instance
     global servers_instance
-    global subscribers_instance
     clients_instance = Clients()
     servers_instance = Services()   
-    subscribers_instance = Subscribers()
 
 ###################### UTILITY FUNCIONS ######################
 def print_all_subtasks():
@@ -299,10 +325,10 @@ def convert_subtask_to_nav_message(subtask: SubTaskMsg, response: GetNextSubTask
         response.nav_is_with_platforms = subtask.nav_is_with_platforms
         return response
 
+
 def main(args=None):
     global clients_instance
     global servers_instance
-    global subscribers_instance
     global mechanism_instance
     global mechanism_state
     rclpy.init(args=args)
@@ -310,29 +336,61 @@ def main(args=None):
     #clients_instance.get_available_tasks_client.send_request()
     mechanism_state = MechanismState()
     mechanism_instance = FirstMechanism()
-    """#mechanism_instance.deploy_forklift()
-    #mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS
-    #mechanism_instance.hold_cans()
-    #mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS
-    #mechanism_instance.hold_bonderole_servo()
-    """
-    mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD
-    ######################### ATTENTION #############################
-    #I need to deploy the forklift and grab cans only after the match starts...
-    #or after the bonderoe pose starts
-    #################################################################
-    executor = MultiThreadedExecutor()
-    executor.add_node(servers_instance.get_next_subtask_service)
-    executor.add_node(subscribers_instance.jack_state_subscriber)
-    try:
-        # Spin all nodes in the executor (it will handle them in separate threads)
-        executor.spin()
-    except KeyboardInterrupt:
-        pass  # Handle graceful shutdown on keyboard interrupt
-    subscribers_instance.jack_state_subscriber.destroy_node()
+    """mechanism_instance.deploy_forklift()
+    mechanism_state.fork_lift_state = MachanismSubTaskType.LOWER_PLANKS
+    print("deployed forklift")
+    mechanism_instance.hold_cans()
+    mechanism_state.cans_state = MachanismSubTaskType.GRAB_CANS"""
+    rclpy.spin(servers_instance.get_next_subtask_service)
+    #rclpy.spin(clients_instance.get_available_tasks_client) here i don't need to spib the client 
+    #because it is invoked by the get_next_subtask_service node
     clients_instance.get_available_tasks_client.destroy_node()
     servers_instance.get_next_subtask_service.destroy_node()
+    mechanism_instance.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
+
+
+
+"""def main(args=None):
+    global clients_instance
+    global servers_instance
+    global subscribers_instance
+    global mechanism_instance
+    global mechanism_state
+
+    rclpy.init(args=args)
+    communication_instances_init()
+
+    mechanism_state = MechanismState()
+    mechanism_instance = FirstMechanism()
+    mechanism_state.bonderole_servo_state = MachanismSubTaskType.BONDEROLE_SERVO_HOLD
+    # Create a dedicated executor for the GetNextSubTaskService node
+    subtask_service_executor = rclpy.executors.SingleThreadedExecutor()
+    subtask_service_executor.add_node(servers_instance.get_next_subtask_service)
+
+    # Run the GetNextSubTaskService executor in a separate thread
+    subtask_service_thread = threading.Thread(target=subtask_service_executor.spin, daemon=True)
+    subtask_service_thread.start()
+
+    # Run other nodes in a different executor
+    other_executor = MultiThreadedExecutor()
+    other_executor.add_node(subscribers_instance.jack_state_subscriber)
+
+    try:
+        other_executor.spin()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # Shutdown both executors and destroy nodes
+        other_executor.shutdown()
+        subtask_service_executor.shutdown()
+        mechanism_instance.destroy_node()
+        subscribers_instance.jack_state_subscriber.destroy_node()
+        servers_instance.get_next_subtask_service.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()"""
