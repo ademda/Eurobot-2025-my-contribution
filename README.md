@@ -169,7 +169,9 @@ When that detection interrupts movement, SMACH passes through `SuddenStop`, `Wai
 
 The [`simulation`](src/simulation/simulation) package contains Pygame tools for inspecting the field. `simulation.py` displays our pose, the detected opponent, task locations, and obstacles using ROS feedback and map services. `simulation_hbaieb.py` provides an interactive field and navigation control interface. These tools helped us reason about coordinates and behavior while developing the robot.
 
-The workspace also preserves reserve-robot, homologation, and alternative strategy files. The [strategy launch file](src/strategy/launch/strategy_launch.py) groups the task generator, subtask generator, and strategy processes; the navigator bridge, LiDAR, jack, and state machine are separate components. The launch files and console entry points reflect different development configurations, so a deployment needs a consistent selection of those variants. This repository contains the ROS side of the system; the STM32 motion controller described in the report runs on the separate board.
+We started the robot using a **shell script that started the ROS nodes one after another**. Once running, the nodes communicated through the topics and services described above.
+
+The workspace also preserves reserve-robot, homologation, and alternative strategy files from different development configurations. This repository contains the ROS side of the system; the STM32 motion controller described in the report runs on the separate board.
 
 For more on the complete robot, see the [project report](docs/robot-design-report.pdf).
 
