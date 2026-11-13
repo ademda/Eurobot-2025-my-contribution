@@ -1,0 +1,9 @@
+# ROS and Python generated files
+**/build/
+**/install/
+**/log/
+**/dist/
+**/*.egg-info/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/

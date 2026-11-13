@@ -1,3 +1,42 @@
+"""
+LidarReader ROS2 Node
+
+This node processes LIDAR scan data to detect obstacles (such as enemy robots) and publishes their positions and detection status.
+It subscribes to navigation and initialization messages to update the robot's current position and orientation, and to a jack signal to enable/disable processing.
+
+Classes:
+    LidarReader(Node): 
+        ROS2 node for reading LIDAR data, detecting obstacles, and publishing their positions.
+
+Global Variables:
+    jack_state (bool): Global flag indicating the state of the jack signal.
+
+LidarReader Methods:
+    __init__(self):
+        Initializes the node, sets up publishers and subscribers, and initializes navigation parameters.
+
+    init_position_callback(self, msg):
+        Callback for the 'init_position' topic. Initializes the robot's position and orientation from the received message.
+
+    jack_signal_callback(self, msg):
+        Callback for the 'jack_signal' topic. Updates the global jack_state variable.
+
+    nav_callback(self, msg):
+        Callback for the 'ros_can_interface/navigator_nav' topic. Updates the robot's current navigation state, position, and orientation.
+
+    scan_callback(self, scan_data):
+        Callback for the '/scan' topic. Processes LIDAR scan data to detect the closest obstacle within map bounds, publishes its position, and updates the obstacle detection status.
+
+    min_range_index(self, ranges, count, scan_data):
+        Finds the index and value of the closest valid obstacle in the LIDAR scan data within the map bounds.
+
+main(args=None):
+    Initializes the ROS2 node and spins it.
+
+Usage:
+    Run this script as a ROS2 node. It will publish obstacle detection status and enemy robot positions based on LIDAR data.
+"""
+
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
@@ -7,9 +46,8 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 from ros_custom_messages.msg import NavigatorNavigationMessage, MasterNavigationMessage
 import math
 
-jack_state = True
-enemy_position = Point(x=0.0, y=0.0, z=0.0)  # Initialize enemy_position with default values
-current_direction = True
+jack_state = False
+
 class LidarReader(Node):
     def __init__(self):
         super().__init__('Lidar_Reader')
@@ -19,7 +57,7 @@ class LidarReader(Node):
             reliability=ReliabilityPolicy.BEST_EFFORT,
             depth=10
         )
-        self.current_direction_sub = self.create_subscription(Bool, 'current_direction', self.current_direction_callback, 10)
+
         self.init_position_sub = self.create_subscription(MasterNavigationMessage,'init_position',self.init_position_callback ,10)
 
         # Publisher for obstacle detection
@@ -27,8 +65,6 @@ class LidarReader(Node):
 
         # Publisher for enemy position
         self.enemy_position_pub = self.create_publisher(Point, 'Enemy_Robot_Position', qos_profile)
-        self.enemy_position_sub = self.create_subscription(Point, 'Enemy_Robot_Position', self.enemy_position_callback, qos_profile) 
-        self.get_logger().warn('Created enemy_robot_position_subscriber')
 
         self.jack_state_subscriber = self.create_subscription(
             Bool,'jack_signal',self.jack_signal_callback ,10
@@ -41,7 +77,7 @@ class LidarReader(Node):
             self.nav_callback,
             10
         )
-    
+
         # Subscriber to scan parameters
         self.scan_subscription = self.create_subscription(
             LaserScan,
@@ -61,21 +97,6 @@ class LidarReader(Node):
         self.get_logger().info(f'Received nav_current_y: {self.nav_current_y}')
         self.get_logger().info(f'Received nav_current_angle: {self.nav_current_angle}')
 
-    def current_direction_callback(self, msg):
-        global current_direction
-        current_direction = msg.data
-        if current_direction:
-            self.get_logger().info('Current direction: Forward')
-        else:
-            self.get_logger().info('Current direction: Backward')
-
-    def enemy_position_callback(self, msg):
-        global enemy_position
-        enemy_position.x = (msg.x) / 1000
-        enemy_position.y = (msg.y) / 1000
-        enemy_position.z = 0.0
-        self.Obstacle_Detected_Checker()
-    
     def init_position_callback(self, msg):
         if self.counter == 0:
             self.nav_current_x = msg.nav_target_x / 1000
@@ -85,58 +106,6 @@ class LidarReader(Node):
             #self.get_logger().info(f'Initialized nav_current_y: {self.nav_current_y}')
             #self.get_logger().info(f'Initialized nav_current_angle: {self.nav_current_angle}')
             self.counter += 1
-
-    def Obstacle_Detected_Checker(self):
-        global enemy_position
-        global current_direction
-
-        dx = enemy_position.x - self.nav_current_x
-        dy = enemy_position.y - self.nav_current_y
-        self.get_logger().info(f'Enemy Position: x={enemy_position.x}, y={enemy_position.y}')
-        self.get_logger().info(f'Robot Position: x={self.nav_current_x}, y={self.nav_current_y}, angle={self.nav_current_angle}')
-
-        distance = math.hypot(dx, dy)
-
-        angle_rad = math.radians(self.nav_current_angle)
-        heading_x = math.cos(angle_rad)
-        heading_y = math.sin(angle_rad)
-
-        if distance == 0:
-            is_in_front = True
-            self.get_logger().warn('Enemy and robot are at the same position!')
-        else:
-            enemy_vec_x = dx / distance
-            enemy_vec_y = dy / distance
-
-            dot = enemy_vec_x * heading_x + enemy_vec_y * heading_y
-            angle = math.degrees(math.acos(dot))  # angle between vectors
-            self.get_logger().warn(f'Angle: {angle}')
-            is_in_front = 0 <= angle <= 90
-
-        if is_in_front:
-            self.get_logger().info('in front!')
-        else:
-            self.get_logger().info('not in front!')
-
-        in_range = 0.05 < distance < 0.45
-
-        obstacle_detected = False
-        self.get_logger().warn(f'current_direction: {current_direction}')
-        self.get_logger().warn(f'distance: {distance}')
-        
-        if current_direction and is_in_front and in_range:
-            obstacle_detected = True
-        elif (not current_direction) and  is_in_front and in_range:
-            obstacle_detected = True
-
-        if obstacle_detected:
-            self.get_logger().info('Obstacle Detected!')
-            self.obstacle_enemy_pub.publish(Bool(data=True))
-        else:
-            self.ObstacleDetected = False
-            self.get_logger().info('No Obstacle Detected')
-            self.obstacle_enemy_pub.publish(Bool(data=False))
-
 
     def jack_signal_callback(self, msg):
         global jack_state

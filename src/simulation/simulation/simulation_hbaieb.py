@@ -1,6 +1,11 @@
 import pygame
 import math
 import json
+
+"""
+This script simulates a robot position to help determining the posistion of the tasks
+"""
+
 # Constants
 WIDTH, HEIGHT = 1080, 720  # Total screen size (split into controls + map)
 CONTROL_WIDTH = 300        # Width of the control section
